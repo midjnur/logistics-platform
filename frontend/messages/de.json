@@ -1,0 +1,20 @@
+{
+    "HomePage": {
+        "title": "KI-gestützte Logistikplattform",
+        "subtitle": "Versender und Spediteure nahtlos verbinden."
+    },
+    "Auth": {
+        "login": "Anmelden",
+        "register": "Registrieren",
+        "logout": "Abmelden",
+        "email": "E-Mail",
+        "password": "Passwort",
+        "phone": "Telefon",
+        "role": "Rolle",
+        "shipper": "Versender",
+        "carrier": "Spediteur",
+        "submit": "Absenden",
+        "haveAccount": "Haben Sie bereits ein Konto? Anmelden",
+        "noAccount": "Haben Sie kein Konto? Registrieren"
+    }
+}

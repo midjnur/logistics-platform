@@ -1,0 +1,44 @@
+{
+  "HomePage": {
+    "title": "AI-Powered Logistics Platform",
+    "subtitle": "Connecting Shippers and Carriers seamlessly."
+  },
+  "Auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "phone": "Phone",
+    "role": "Role",
+    "shipper": "Shipper",
+    "carrier": "Carrier",
+    "submit": "Submit",
+    "haveAccount": "Already have an account? Login",
+    "noAccount": "Don't have an account? Register"
+  },
+  "Shipper": {
+    "createShipment": "Create Shipment",
+    "pickupLocation": "Pickup Location",
+    "deliveryLocation": "Delivery Location",
+    "cargoType": "Cargo Type",
+    "weight": "Weight (kg)",
+    "volume": "Volume (m³)",
+    "dimensions": "Dimensions (L x W x H)",
+    "vehicleType": "Required Vehicle Type",
+    "specialRequirements": "Special Requirements",
+    "estimatedPrice": "Estimated Price",
+    "postShipment": "Post Shipment",
+    "myShipments": "My Shipments"
+  },
+  "Carrier": {
+    "availableJobs": "Available Jobs",
+    "myVehicles": "My Vehicles",
+    "addVehicle": "Add Vehicle",
+    "plateNumber": "Plate Number",
+    "vehicleType": "Vehicle Type",
+    "capacity": "Capacity (kg)",
+    "acceptJob": "Accept Job",
+    "jobDetails": "Job Details"
+  }
+}

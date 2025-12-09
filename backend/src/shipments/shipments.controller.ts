@@ -1,0 +1,50 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ShipmentsService } from './shipments.service';
+import { ShipmentStatus } from './shipment.entity';
+
+@Controller('shipments')
+@UseGuards(AuthGuard('jwt'))
+export class ShipmentsController {
+  constructor(private shipmentsService: ShipmentsService) {}
+
+  @Post()
+  async create(@Body() createDto: any, @Request() req: { user: any }) {
+    return this.shipmentsService.create({
+      ...createDto,
+      shipper_id: req.user.userId,
+    });
+  }
+
+  @Get()
+  async findAll(@Request() req: { user: any }) {
+    // If shipper, show only their shipments
+    if (req.user.role === 'SHIPPER') {
+      return this.shipmentsService.findAll(req.user.userId);
+    }
+    // If carrier or admin, show all available shipments
+    return this.shipmentsService.findAll();
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.shipmentsService.findOne(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: ShipmentStatus },
+  ) {
+    return this.shipmentsService.updateStatus(id, body.status);
+  }
+}
