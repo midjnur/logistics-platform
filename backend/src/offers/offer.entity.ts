@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Shipment } from '../shipments/shipment.entity';
 import { Carrier } from '../carriers/carrier.entity';
@@ -53,4 +54,7 @@ export class Offer {
 
   @Column({ type: 'timestamp', nullable: true })
   expires_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

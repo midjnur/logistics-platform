@@ -40,5 +40,15 @@
     "capacity": "Capacity (kg)",
     "acceptJob": "Accept Job",
     "jobDetails": "Job Details"
+  },
+  "Dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "myShipments": "My Shipments",
+    "createShipment": "Create Shipment",
+    "findLoads": "Find Loads",
+    "myVehicles": "My Vehicles",
+    "myDocuments": "My Documents",
+    "logout": "Logout"
   }
 }

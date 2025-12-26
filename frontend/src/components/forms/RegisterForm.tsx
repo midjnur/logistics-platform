@@ -45,70 +45,77 @@ export default function RegisterForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full max-w-md mx-auto p-10 glass rounded-3xl shadow-2xl animate-in fade-in zoom-in duration-500">
-            <h2 className="text-3xl font-bold mb-6 text-center text-gray-900 tracking-tight">{t('register')}</h2>
-            {error && <div className="bg-red-500/10 border border-red-500/20 text-red-700 p-4 rounded-xl backdrop-blur-sm text-center">{error}</div>}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
+            <div className="text-center mb-2">
+                <h2 className="text-3xl font-bold text-white mb-2">{t('register')}</h2>
+                <p className="text-white/70 text-sm">Create your Logistics Platform account</p>
+            </div>
 
-            <div className="space-y-5">
-                <div className="group">
-                    <label className="block mb-2 font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">{t('email')}</label>
+            {error && <div className="bg-red-500/20 border border-red-300/30 text-red-200 p-3 rounded-lg text-sm">{error}</div>}
+
+            <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                    <label className="text-white/90 text-sm font-medium">{t('email')}</label>
                     <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                        className="bg-white/10 border border-white/30 text-white placeholder-white/50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
                         placeholder="you@example.com"
                         required
                     />
                 </div>
 
-                <div className="group">
-                    <label className="block mb-2 font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">{t('phone')}</label>
+                <div className="flex flex-col gap-2">
+                    <label className="text-white/90 text-sm font-medium">{t('phone')}</label>
                     <input
                         type="text"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                        className="bg-white/10 border border-white/30 text-white placeholder-white/50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
                         placeholder="+1 234 567 890"
                         required
                     />
                 </div>
 
-                <div className="group">
-                    <label className="block mb-2 font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">{t('password')}</label>
+                <div className="flex flex-col gap-2">
+                    <label className="text-white/90 text-sm font-medium">{t('password')}</label>
                     <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                        className="bg-white/10 border border-white/30 text-white placeholder-white/50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
                         placeholder="••••••••"
                         required
                     />
                 </div>
 
-                <div className="group">
-                    <label className="block mb-2 font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors">{t('role')}</label>
+                <div className="flex flex-col gap-2">
+                    <label className="text-white/90 text-sm font-medium">{t('role')}</label>
                     <div className="relative">
                         <select
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
-                            className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-medium appearance-none"
+                            className="w-full bg-white/10 border border-white/30 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all appearance-none"
                         >
-                            <option value="SHIPPER">{t('shipper')}</option>
-                            <option value="CARRIER">{t('carrier')}</option>
+                            <option value="SHIPPER" className="bg-gray-800">{t('shipper')}</option>
+                            <option value="CARRIER" className="bg-gray-800">{t('carrier')}</option>
                         </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                        <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-white/70">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-4 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.02] mt-4">
+            <button
+                type="submit"
+                className="w-full bg-white text-blue-600 font-semibold p-3 rounded-lg hover:bg-white/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+            >
                 {t('submit')}
             </button>
 
-            <Link href="/auth/login" className="block text-center text-gray-600 hover:text-blue-600 font-medium transition-colors mt-2">
+            <Link href="/auth/login" className="text-white/80 hover:text-white text-sm text-center transition-colors">
                 {t('haveAccount')}
             </Link>
         </form>

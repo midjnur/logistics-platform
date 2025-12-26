@@ -16,5 +16,15 @@
         "submit": "Absenden",
         "haveAccount": "Haben Sie bereits ein Konto? Anmelden",
         "noAccount": "Haben Sie kein Konto? Registrieren"
+    },
+    "Dashboard": {
+        "title": "Dashboard",
+        "overview": "Übersicht",
+        "myShipments": "Meine Sendungen",
+        "createShipment": "Sendung erstellen",
+        "findLoads": "Ladungen finden",
+        "myVehicles": "Meine Fahrzeuge",
+        "myDocuments": "Meine Dokumente",
+        "logout": "Abmelden"
     }
 }

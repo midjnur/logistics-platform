@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import DocumentPreview from './DocumentPreview';
 
 interface Document {
     id: string;
@@ -29,6 +30,7 @@ interface DocumentUploadProps {
 export default function DocumentUpload({ shipmentId, allowedTypes, onUploadComplete }: DocumentUploadProps) {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
     // Default to first allowed type or PASSPORT
     const initialType = allowedTypes && allowedTypes.length > 0 ? allowedTypes[0] : 'PASSPORT';
@@ -99,90 +101,104 @@ export default function DocumentUpload({ shipmentId, allowedTypes, onUploadCompl
     };
 
     return (
-        <div className="w-full max-w-4xl space-y-8">
-            {/* Header / Title removed from component, handled by page */}
+        <div className={`w-full transition-all duration-300 ${selectedDoc ? 'grid grid-cols-1 lg:grid-cols-2 gap-6' : ''}`}>
+            {/* Left Column - Document List */}
+            <div className={`space-y-8 ${selectedDoc ? 'lg:pr-3' : 'max-w-4xl'}`}>
+                {/* Header / Title removed from component, handled by page */}
 
-            {/* Upload Section (Glass) */}
-            <div className="p-6 bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl shadow-sm">
-                <h3 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide opacity-70">Upload New Document</h3>
-                <div className="flex flex-col md:flex-row gap-4 items-end">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Document Type</label>
-                        <select
-                            value={selectedType}
-                            onChange={(e) => setSelectedType(e.target.value)}
-                            className="bg-white/60 border border-gray-200/50 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none w-48"
-                        >
-                            {availableTypes.map(type => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                {/* Upload Section (Glass) */}
+                <div className="p-6 bg-white/40 backdrop-blur-xl border border-white/50 rounded-xl shadow-sm">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4 uppercase tracking-wide opacity-70">Upload New Document</h3>
+                    <div className="flex flex-col md:flex-row gap-4 items-end">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Document Type</label>
+                            <select
+                                value={selectedType}
+                                onChange={(e) => setSelectedType(e.target.value)}
+                                className="bg-white/60 border border-gray-200/50 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 outline-none w-48"
+                            >
+                                {availableTypes.map(type => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-600 mb-1.5">Select File</label>
-                        <input
-                            type="file"
-                            onChange={handleFileUpload}
-                            disabled={uploading}
-                            className="block w-full text-sm text-gray-500
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Select File</label>
+                            <input
+                                type="file"
+                                onChange={handleFileUpload}
+                                disabled={uploading}
+                                className="block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-full file:border-0
                 file:text-sm file:font-semibold
                 file:bg-blue-600 file:text-white
                 hover:file:bg-blue-700
                 cursor-pointer transition-colors"
-                        />
-                    </div>
+                            />
+                        </div>
 
-                    {uploading && <span className="text-sm text-blue-600 animate-pulse font-medium">Uploading...</span>}
+                        {uploading && <span className="text-sm text-blue-600 animate-pulse font-medium">Uploading...</span>}
+                    </div>
+                </div>
+
+                {/* Documents List (macOS Settings Style) */}
+                <div className="bg-white/40 backdrop-blur-2xl border border-white/50 rounded-xl shadow-sm overflow-hidden">
+                    {documents.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500 text-sm">
+                            No documents uploaded yet.
+                        </div>
+                    ) : (
+                        documents.map((doc, index) => (
+                            <div key={doc.id} className={`flex items-center justify-between px-6 py-4 hover:bg-white/40 transition-colors ${index !== documents.length - 1 ? 'border-b border-gray-200/30' : ''}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100/50 flex items-center justify-center text-indigo-600">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900">{doc.type}</p>
+                                        <p className="text-xs text-gray-500 truncate max-w-[200px]" title={doc.metadata?.originalName}>
+                                            {doc.metadata?.originalName}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${doc.status === 'VERIFIED' ? 'bg-green-500/10 text-green-700' :
+                                        doc.status === 'REJECTED' ? 'bg-red-500/10 text-red-700' :
+                                            'bg-yellow-500/10 text-yellow-700'
+                                        }`}>
+                                        {doc.status}
+                                    </span>
+
+                                    <button
+                                        onClick={() => setSelectedDoc(doc)}
+                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                        View
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
 
-            {/* Documents List (macOS Settings Style) */}
-            <div className="bg-white/40 backdrop-blur-2xl border border-white/50 rounded-xl shadow-sm overflow-hidden">
-                {documents.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500 text-sm">
-                        No documents uploaded yet.
+            {/* Right Column - Document Preview */}
+            {selectedDoc && (
+                <div className="lg:pl-3 h-full min-h-[600px]">
+                    <div className="sticky top-4 bg-white/40 backdrop-blur-2xl border border-white/50 rounded-xl shadow-lg overflow-hidden h-[calc(100vh-8rem)]">
+                        <DocumentPreview
+                            document={selectedDoc}
+                            onClose={() => setSelectedDoc(null)}
+                        />
                     </div>
-                ) : (
-                    documents.map((doc, index) => (
-                        <div key={doc.id} className={`flex items-center justify-between px-6 py-4 hover:bg-white/40 transition-colors ${index !== documents.length - 1 ? 'border-b border-gray-200/30' : ''}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-indigo-100/50 flex items-center justify-center text-indigo-600">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-gray-900">{doc.type}</p>
-                                    <p className="text-xs text-gray-500 truncate max-w-[200px]" title={doc.metadata?.originalName}>
-                                        {doc.metadata?.originalName}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase ${doc.status === 'VERIFIED' ? 'bg-green-500/10 text-green-700' :
-                                        doc.status === 'REJECTED' ? 'bg-red-500/10 text-red-700' :
-                                            'bg-yellow-500/10 text-yellow-700'
-                                    }`}>
-                                    {doc.status}
-                                </span>
-
-                                <a
-                                    href={doc.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                                >
-                                    View
-                                </a>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
+

@@ -13,6 +13,7 @@ interface Shipment {
     weight_kg: number;
     status: string;
     created_at: string;
+    pickup_time?: string;
 }
 
 export default function CarrierDashboardPage() {
@@ -32,87 +33,131 @@ export default function CarrierDashboardPage() {
                 setLoading(false);
             }
         };
+
         loadShipments();
+
+        // Auto-refresh every 60 seconds
+        const interval = setInterval(loadShipments, 60000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="space-y-8">
-            <h1 className="text-3xl font-bold">Carrier Dashboard</h1>
-
-            {/* Stats Overview (macOS Settings Style) */}
-            <div className="w-full max-w-3xl">
-                <div className="bg-white/40 backdrop-blur-2xl border border-white/50 rounded-xl shadow-sm overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/30 hover:bg-white/40 transition-colors">
-                        <span className="text-sm font-medium text-gray-900">Active Jobs</span>
-                        <span className="text-sm text-gray-500">0</span>
-                    </div>
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/30 hover:bg-white/40 transition-colors">
-                        <span className="text-sm font-medium text-gray-900">Total Earnings</span>
-                        <span className="text-sm text-gray-500">€0.00</span>
-                    </div>
-                    <div className="flex items-center justify-between px-4 py-3 hover:bg-white/40 transition-colors">
-                        <span className="text-sm font-medium text-gray-900">Fleet Size</span>
-                        <span className="text-sm text-gray-500">0</span>
-                    </div>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Overview</h1>
+                    <p className="text-gray-500 mt-1">Welcome back, track your progress</p>
                 </div>
-                <p className="mt-2 text-xs text-gray-500 px-2">
-                    Start finding loads to increase your potential earnings.
-                </p>
-            </div>
+            </header>
+
+
 
             {/* Available Loads Section */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="p-6 border-b">
-                    <h2 className="text-xl font-bold text-gray-800">Available Loads</h2>
+            <div className="glass p-8 rounded-3xl shadow-sm min-h-[400px]">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Recent Opportunities
+                    </h2>
+                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1">
+                        View all
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                    </button>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-sm font-semibold text-gray-600">Route</th>
-                                <th className="px-6 py-3 text-sm font-semibold text-gray-600">Cargo</th>
-                                <th className="px-6 py-3 text-sm font-semibold text-gray-600">Date Posted</th>
-                                <th className="px-6 py-3 text-sm font-semibold text-gray-600">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center">Loading...</td>
-                                </tr>
-                            ) : shipments.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No shipments found.</td>
-                                </tr>
-                            ) : (
-                                shipments.map((shipment) => (
-                                    <tr key={shipment.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div className="font-medium">{shipment.pickup_address}</div>
-                                            <div className="text-gray-400 text-xs">⬇ to</div>
-                                            <div className="font-medium">{shipment.delivery_address}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div>{shipment.cargo_type}</div>
-                                            <div className="text-sm text-gray-500">{shipment.weight_kg} kg</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {new Date(shipment.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
-                                                View Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 text-sm">Finding loads...</p>
+                    </div>
+                ) : shipments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium">No shipments found.</p>
+                        <p className="text-xs text-gray-400 mt-1">Check back later for new opportunities.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {shipments.map((shipment) => (
+                            <div
+                                key={shipment.id}
+                                className="backdrop-blur-xl p-5 rounded-2xl border border-white/50 bg-white/40 transition-all hover:shadow-md group relative overflow-hidden"
+                            >
+                                <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
+                                    {/* Left: Shipment Context */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="space-y-3 mb-2">
+                                            {/* Row 1: Cargo Type & Status */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100">
+                                                    {shipment.cargo_type}
+                                                </span>
+                                                <span className="px-3 py-1.5 rounded-xl bg-green-50 text-green-700 text-sm font-bold border border-green-100 uppercase tracking-wider flex items-center gap-1">
+                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Posted {new Date(shipment.created_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+
+                                            {/* Row 2: Route */}
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    <span>{shipment.pickup_address.split(',')[0]}</span>
+                                                </div>
+                                                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                    <span>{shipment.delivery_address.split(',')[0]}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Row 3: Meta Data Grid */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.weight_kg} kg</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
+                                                    <span className="font-semibold text-gray-700">{new Date(shipment.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">ID</span>
+                                                    <span className="font-mono text-gray-700">{shipment.id.split('-')[0]}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Action Button */}
+                                    <div className="flex flex-col items-end gap-4 justify-center min-w-[120px]">
+                                        <button
+                                            onClick={() => window.location.href = `/en/dashboard/carrier/shipments/${shipment.id}`}
+                                            className="text-sm text-blue-600 font-bold hover:underline flex items-center gap-1"
+                                        >
+                                            Details
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
-
-
         </div>
     );
 }

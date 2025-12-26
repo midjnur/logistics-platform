@@ -28,37 +28,46 @@ export default function LoginForm() {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-md mx-auto p-6 bg-white shadow-md rounded">
-            <h2 className="text-2xl font-bold mb-4">{t('login')}</h2>
-            {error && <p className="text-red-500">{error}</p>}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
+            <div className="text-center mb-2">
+                <h2 className="text-3xl font-bold text-white mb-2">{t('login')}</h2>
+                <p className="text-white/70 text-sm">Welcome back to Logistics Platform</p>
+            </div>
 
-            <div className="flex flex-col">
-                <label className="mb-1">{t('email')}</label>
+            {error && <p className="text-red-300 bg-red-500/20 p-3 rounded-lg text-sm">{error}</p>}
+
+            <div className="flex flex-col gap-2">
+                <label className="text-white/90 text-sm font-medium">{t('email')}</label>
                 <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="border p-2 rounded"
+                    className="bg-white/10 border border-white/30 text-white placeholder-white/50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                    placeholder="your@email.com"
                     required
                 />
             </div>
 
-            <div className="flex flex-col">
-                <label className="mb-1">{t('password')}</label>
+            <div className="flex flex-col gap-2">
+                <label className="text-white/90 text-sm font-medium">{t('password')}</label>
                 <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="border p-2 rounded"
+                    className="bg-white/10 border border-white/30 text-white placeholder-white/50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                    placeholder="••••••••"
                     required
                 />
             </div>
 
-            <button type="submit" className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+            <button
+                type="submit"
+                className="bg-white text-blue-600 font-semibold p-3 rounded-lg hover:bg-white/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+            >
                 {t('submit')}
             </button>
 
-            <Link href="/auth/register" className="text-blue-500 text-sm text-center">
+            <Link href="/auth/register" className="text-white/80 hover:text-white text-sm text-center transition-colors">
                 {t('noAccount')}
             </Link>
         </form>

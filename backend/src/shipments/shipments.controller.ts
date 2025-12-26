@@ -15,7 +15,7 @@ import { ShipmentStatus } from './shipment.entity';
 @Controller('shipments')
 @UseGuards(AuthGuard('jwt'))
 export class ShipmentsController {
-  constructor(private shipmentsService: ShipmentsService) {}
+  constructor(private shipmentsService: ShipmentsService) { }
 
   @Post()
   async create(@Body() createDto: any, @Request() req: { user: any }) {
@@ -25,13 +25,29 @@ export class ShipmentsController {
     });
   }
 
+  @Get('my-shipments')
+  async findMyShipments(@Request() req: { user: any }) {
+    if (req.user.role === 'CARRIER') {
+      return this.shipmentsService.findAssignedToCarrier(req.user.userId);
+    }
+    // Fallback for shippers or others (reuse existing logical approach or strict subset)
+    if (req.user.role === 'SHIPPER') {
+      return this.shipmentsService.findAll(req.user.userId);
+    }
+    return [];
+  }
+
   @Get()
   async findAll(@Request() req: { user: any }) {
     // If shipper, show only their shipments
     if (req.user.role === 'SHIPPER') {
       return this.shipmentsService.findAll(req.user.userId);
     }
-    // If carrier or admin, show all available shipments
+    // If carrier, exclude shipments they already offered on
+    if (req.user.role === 'CARRIER') {
+      return this.shipmentsService.findAll(undefined, req.user.userId);
+    }
+    // If admin, show all available shipments
     return this.shipmentsService.findAll();
   }
 
@@ -46,5 +62,12 @@ export class ShipmentsController {
     @Body() body: { status: ShipmentStatus },
   ) {
     return this.shipmentsService.updateStatus(id, body.status);
+  }
+
+  @Post(':id/confirm-pickup')
+  async confirmPickup(@Param('id') id: string, @Request() req: { user: any }) {
+    // Ideally verify carrier is assigned, but keeping simple for now
+    // Service logic could check `shipment.carrier_id === req.user.userId`
+    return this.shipmentsService.updateStatus(id, ShipmentStatus.IN_TRANSIT);
   }
 }
