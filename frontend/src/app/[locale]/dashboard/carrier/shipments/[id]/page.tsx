@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import DocumentUpload from '@/components/documents/DocumentUpload';
 import { fetchApi } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -40,6 +41,7 @@ interface DetailedShipment {
     shipper_details: any;
     consignee_details: any;
     timeline?: { status: string; timestamp: string; description?: string }[];
+    documents?: any[];
 }
 
 export default function ShipmentDetailsPage() {
@@ -100,7 +102,7 @@ export default function ShipmentDetailsPage() {
                         className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors font-medium bg-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Shipments
+                        Go Back
                     </button>
                     <span className="px-3 py-1 bg-white/50 backdrop-blur rounded-lg text-sm text-gray-500 font-mono">
                         ID: {shipment.id.split('-')[0]}
@@ -289,57 +291,73 @@ export default function ShipmentDetailsPage() {
                             </div>
                         </div>
                     </div>
+                    {/* Shipment Documents */}
+                    <div className="pt-4 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-4">Shipment Documents</p>
+                        <div className="bg-white p-4 rounded-xl border border-gray-100">
+                            <DocumentUpload
+                                shipmentId={shipment.id}
+                                documents={shipment.documents}
+                                readOnly={true}
+                                onUploadComplete={() => {
+                                    fetchApi(`/shipments/${shipment.id}`).then(setShipment);
+                                }}
+                            />
+                        </div>
+                    </div>
                 </section>
             </div >
 
             {/* Sticky Action Footer - Transparent Floating Style */}
-            {['OPEN', 'OFFERED'].includes(shipment.status) && (
-                <div className="fixed bottom-[80px] md:bottom-0 left-0 md:left-64 right-0 p-4 z-[60] safe-area-bottom pointer-events-none">
-                    <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center gap-4 pointer-events-auto">
-                        <div className="flex-1 w-full md:w-auto relative">
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Add a message to shipper..."
-                                value={offerMessage}
-                                onChange={(e) => setOfferMessage(e.target.value)}
-                                className="w-full bg-gray-100 border-0 rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                            />
-                        </div>
-                        <div className="flex w-full md:w-auto gap-3">
-                            <div className="relative flex-1 md:flex-initial group">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-500 group-focus-within:text-blue-600 transition-colors">€</span>
+            {
+                ['OPEN', 'OFFERED'].includes(shipment.status) && (
+                    <div className="fixed bottom-[80px] md:bottom-0 left-0 md:left-64 right-0 p-4 z-[60] safe-area-bottom pointer-events-none">
+                        <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center gap-4 pointer-events-auto">
+                            <div className="flex-1 w-full md:w-auto relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                                </div>
                                 <input
-                                    type="number"
-                                    placeholder="Your Offer"
-                                    value={offerPrice}
-                                    onChange={(e) => setOfferPrice(e.target.value)}
-                                    className="w-full md:w-44 bg-white border border-gray-200 rounded-xl py-3.5 pl-8 pr-4 font-bold text-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+                                    type="text"
+                                    placeholder="Add a message to shipper..."
+                                    value={offerMessage}
+                                    onChange={(e) => setOfferMessage(e.target.value)}
+                                    className="w-full bg-gray-100 border-0 rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                                 />
                             </div>
-                            <button
-                                onClick={handleSubmitOffer}
-                                disabled={submitting || !offerPrice}
-                                className="bg-gray-900 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-gray-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex-1 md:flex-initial whitespace-nowrap flex items-center justify-center gap-2"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>Sending...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Send Offer</span>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                    </>
-                                )}
-                            </button>
+                            <div className="flex w-full md:w-auto gap-3">
+                                <div className="relative flex-1 md:flex-initial group">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-500 group-focus-within:text-blue-600 transition-colors">€</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Your Offer"
+                                        value={offerPrice}
+                                        onChange={(e) => setOfferPrice(e.target.value)}
+                                        className="w-full md:w-44 bg-white border border-gray-200 rounded-xl py-3.5 pl-8 pr-4 font-bold text-lg text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleSubmitOffer}
+                                    disabled={submitting || !offerPrice}
+                                    className="bg-gray-900 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-gray-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex-1 md:flex-initial whitespace-nowrap flex items-center justify-center gap-2"
+                                >
+                                    {submitting ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Sending...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Send Offer</span>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 }

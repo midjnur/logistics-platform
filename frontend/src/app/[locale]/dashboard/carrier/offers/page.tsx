@@ -34,7 +34,13 @@ export default function OffersSentPage() {
 
     useEffect(() => {
         fetchApi('/offers/my-offers')
-            .then(setOffers)
+            .then((data: Offer[]) => {
+                // Filter out offers for shipments that are completed or cancelled
+                const activeOffers = data.filter(offer =>
+                    !['DELIVERED', 'CANCELLED'].includes(offer.shipment?.status)
+                );
+                setOffers(activeOffers);
+            })
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);
@@ -122,20 +128,20 @@ export default function OffersSentPage() {
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
-                                                    <span className="font-semibold text-gray-700">{offer.shipment?.pickup_time ? new Date(offer.shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                    <span className="font-semibold text-gray-700" suppressHydrationWarning>{offer.shipment?.pickup_time ? new Date(offer.shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created (Shipment)</span>
-                                                    <span className="font-semibold text-gray-700">{offer.shipment?.created_at ? new Date(offer.shipment.created_at).toLocaleDateString() : '—'}</span>
+                                                    <span className="font-semibold text-gray-700" suppressHydrationWarning>{offer.shipment?.created_at ? new Date(offer.shipment.created_at).toLocaleDateString() : '—'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Offer Sent</span>
-                                                    <span className="font-semibold text-gray-700">{new Date(offer.created_at).toLocaleDateString()}</span>
+                                                    <span className="font-semibold text-gray-700" suppressHydrationWarning>{new Date(offer.created_at).toLocaleDateString()}</span>
                                                 </div>
                                                 {offer.status === 'ACCEPTED' && (
                                                     <div className="col-span-2 md:col-span-1 bg-green-50 rounded-lg p-1 -m-1 pl-2">
                                                         <span className="block text-green-600 font-medium uppercase tracking-wider text-[10px]">Accepted On</span>
-                                                        <span className="font-bold text-green-700">{new Date(offer.updated_at).toLocaleDateString()}</span>
+                                                        <span className="font-bold text-green-700" suppressHydrationWarning>{new Date(offer.updated_at).toLocaleDateString()}</span>
                                                     </div>
                                                 )}
                                             </div>

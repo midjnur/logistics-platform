@@ -118,7 +118,7 @@ export default function AvailableJobsPage() {
                         {jobs.map((job) => (
                             <div
                                 key={job.id}
-                                className="backdrop-blur-xl p-5 rounded-2xl border border-white/50 bg-white/40 transition-all hover:shadow-md group relative overflow-hidden"
+                                className="backdrop-blur-xl p-5 rounded-2xl border transition-all hover:shadow-md group relative overflow-hidden bg-blue-50/30 border-blue-100"
                             >
                                 <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
                                     {/* Left: Shipment Context */}
@@ -148,7 +148,7 @@ export default function AvailableJobsPage() {
                                             </div>
 
                                             {/* Row 3: Meta Data Grid */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
                                                     <span className="font-semibold text-gray-700">{job.weight_kg} kg</span>
@@ -170,7 +170,7 @@ export default function AvailableJobsPage() {
                                     </div>
 
                                     {/* Right: Price & Action */}
-                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[120px]">
+                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[120px] border-l border-gray-100 pl-6 border-dashed">
                                         {job.price && (
                                             <div className="text-right">
                                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Est. Price</p>

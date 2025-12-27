@@ -56,12 +56,16 @@ export class ShipmentsService {
   async findAssignedToCarrier(carrierId: string): Promise<Shipment[]> {
     return this.shipmentsRepository.find({
       where: { carrier_id: carrierId },
+      relations: ['offers'],
       order: { created_at: 'DESC' },
     });
   }
 
   async findOne(id: string): Promise<Shipment | null> {
-    return this.shipmentsRepository.findOne({ where: { id } });
+    return this.shipmentsRepository.findOne({
+      where: { id },
+      relations: ['documents'],
+    });
   }
 
   async updateStatus(

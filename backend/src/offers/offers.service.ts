@@ -74,6 +74,7 @@ export class OffersService {
       await this.shipmentsRepository.update(offer.shipment_id, {
         status: ShipmentStatus.ASSIGNED,
         carrier_id: offer.carrier_id,
+        price: offer.offered_price,
         timeline: [...(shipment.timeline || []), newTimelineEntry],
       });
     }

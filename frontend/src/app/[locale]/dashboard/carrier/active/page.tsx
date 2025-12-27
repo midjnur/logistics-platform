@@ -6,6 +6,14 @@ import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 import ShipmentProgressControl from '@/components/dashboard/ShipmentProgressControl';
 
+interface Offer {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    status: string;
+    offered_price: number;
+}
+
 interface Shipment {
     id: string;
     pickup_address: string;
@@ -13,6 +21,10 @@ interface Shipment {
     pickup_time: string;
     weight_kg: number;
     status: string;
+    cargo_type: string;
+    price: number;
+    created_at: string;
+    offers?: Offer[];
 }
 
 const ACTIVE_STATUSES = [
@@ -65,38 +77,100 @@ export default function ActiveShipmentsPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid gap-8">
-                    {shipments.map((shipment) => (
-                        <div key={shipment.id} className="glass p-6 rounded-3xl shadow-lg border border-blue-100/50 bg-white/90">
-                            {/* Header Info */}
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 border-b border-gray-100 pb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1">
-                                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                                            {shipment.status.replace(/_/g, ' ')}
-                                        </span>
-                                        <span className="text-gray-400 text-xs font-mono">ID: {shipment.id.split('-')[0]}</span>
+                <div className="glass p-8 rounded-3xl shadow-sm min-h-[400px]">
+                    <div className="grid gap-6">
+                        {shipments.map((shipment) => (
+                            <div key={shipment.id} className="backdrop-blur-xl p-5 rounded-2xl border transition-all hover:shadow-md group relative overflow-hidden bg-white/40 border-white/50">
+                                {/* Grid Layout to match standard card structure */}
+                                <div className="flex flex-col md:flex-row gap-6 relative z-10">
+                                    {/* Left: Shipment Context */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="space-y-3 mb-2">
+                                            {/* Row 1: Cargo Type & Status */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100">
+                                                    {shipment.cargo_type}
+                                                </span>
+                                                {/* Dynamic Status Badge */}
+                                                {shipment.status === 'DRIVER_AT_PICKUP' && <span className="px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-bold border border-indigo-100 uppercase tracking-wider">Driver Arrived</span>}
+                                                {shipment.status === 'LOADING_STARTED' && <span className="px-3 py-1.5 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-bold border border-indigo-200 uppercase tracking-wider">Loading</span>}
+                                                {shipment.status === 'LOADING_FINISHED' && <span className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100 uppercase tracking-wider">Loading Done</span>}
+                                                {shipment.status === 'IN_TRANSIT' && <span className="px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 text-sm font-bold border border-blue-200 uppercase tracking-wider">In Transit</span>}
+                                                {shipment.status === 'ARRIVED_DELIVERY' && <span className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 text-sm font-bold border border-purple-100 uppercase tracking-wider">At Delivery</span>}
+                                                {shipment.status === 'UNLOADING_FINISHED' && <span className="px-3 py-1.5 rounded-xl bg-purple-100 text-purple-700 text-sm font-bold border border-purple-200 uppercase tracking-wider">Unloading Done</span>}
+                                            </div>
+
+                                            {/* Row 2: Route */}
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    <span>{shipment.pickup_address.split(',')[0]}</span>
+                                                </div>
+                                                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                    <span>{shipment.delivery_address.split(',')[0]}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Row 3: Meta Data Grid */}
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.weight_kg} kg</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
+                                                    <span className="font-semibold text-gray-700">{new Date(shipment.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                {shipment.offers && shipment.offers.length > 0 && (
+                                                    <>
+                                                        <div>
+                                                            <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Offer Sent</span>
+                                                            <span className="font-semibold text-gray-700">
+                                                                {new Date(shipment.offers[0].created_at).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        {shipment.offers.some(o => o.status === 'ACCEPTED') && (
+                                                            <div className="bg-green-50 rounded-lg p-1 -m-1 pl-2">
+                                                                <span className="block text-green-600 font-medium uppercase tracking-wider text-[10px]">Accepted On</span>
+                                                                <span className="font-bold text-green-700">
+                                                                    {new Date(shipment.offers.find((o: Offer) => o.status === 'ACCEPTED')!.updated_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">ID</span>
+                                                    <span className="font-mono text-gray-700">{shipment.id.split('-')[0]}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3 text-lg">
-                                        <span className="font-bold text-gray-900">{shipment.pickup_address.split(',')[0]}</span>
-                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                        <span className="font-bold text-gray-900">{shipment.delivery_address.split(',')[0]}</span>
+
+                                    {/* Right: Progress Control & Earnings */}
+                                    <div className="flex flex-col items-end justify-between gap-6 min-w-[280px] border-l border-gray-100 pl-6 border-dashed">
+                                        <div className="text-right w-full">
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Earnings</p>
+                                            <span className="text-3xl font-black text-gray-900 tracking-tight">€{(shipment.price || shipment.offers?.find((o: Offer) => o.status === 'ACCEPTED')?.offered_price || 0).toLocaleString()}</span>
+                                        </div>
+
+                                        <div className="w-full bg-white/50 rounded-xl p-2 border border-gray-100">
+                                            <ShipmentProgressControl
+                                                shipment={shipment}
+                                                onStatusUpdate={loadShipments}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm text-gray-500">Weight: <span className="font-bold text-gray-900">{shipment.weight_kg} kg</span></div>
-                                    <div className="text-sm text-gray-500">Pickup: <span className="font-bold text-gray-900">{new Date(shipment.pickup_time).toLocaleDateString()}</span></div>
                                 </div>
                             </div>
-
-                            {/* Progress Control */}
-                            <ShipmentProgressControl
-                                shipment={shipment}
-                                onStatusUpdate={loadShipments}
-                            />
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

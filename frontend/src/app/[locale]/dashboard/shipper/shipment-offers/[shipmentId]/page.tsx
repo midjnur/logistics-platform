@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
+import DocumentUpload from '@/components/documents/DocumentUpload';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -51,6 +52,8 @@ interface DetailedShipment {
 
     shipper_details: any;
     consignee_details: any;
+    timeline?: { status: string; timestamp: string; description?: string }[];
+    documents?: any[];
 }
 
 export default function ShipmentOffersPage() {
@@ -76,24 +79,9 @@ export default function ShipmentOffersPage() {
                     // Don't block shipment details if offers fail
                 });
 
-            // 2. Fetch Shipment (Workaround via all shipments)
-            fetchApi(`/shipments`)
-                .then((allShipments) => {
-                    // DEBUG: Log IDs to help troubleshooting
-                    console.log('Seeking ID:', shipmentId);
-                    console.log('Available IDs:', allShipments.map((s: any) => s.id));
-
-                    // Loose matching to be safe
-                    const foundShipment = allShipments.find((s: DetailedShipment) =>
-                        String(s.id).toLowerCase() === String(shipmentId).toLowerCase()
-                    );
-
-                    if (foundShipment) {
-                        setShipment(foundShipment);
-                    } else {
-                        throw new Error(`Shipment ${shipmentId} not found in list of ${allShipments.length} shipments.`);
-                    }
-                })
+            // 2. Fetch Shipment Details
+            fetchApi(`/shipments/${shipmentId}`)
+                .then(setShipment)
                 .catch(err => {
                     console.error('Error fetching shipment details:', err);
                     setError(err.message || String(err));
@@ -149,11 +137,11 @@ export default function ShipmentOffersPage() {
             <div className="max-w-7xl mx-auto relative z-10">
                 <div className="flex items-center justify-between mb-8">
                     <button
-                        onClick={() => router.push('/dashboard/shipper/my-shipments')}
+                        onClick={() => router.back()}
                         className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors font-medium bg-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Shipments
+                        Go Back
                     </button>
                     <span className="px-3 py-1 bg-white/50 backdrop-blur rounded-lg text-sm text-gray-500 font-mono">
                         ID: {shipment?.id.split('-')[0]}
@@ -296,6 +284,50 @@ export default function ShipmentOffersPage() {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Shipment Log */}
+                                <div className="pt-4 border-t border-gray-100">
+                                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-4">Shipment Log</p>
+                                    <div className="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+                                        {shipment?.timeline && shipment.timeline.length > 0 ? (
+                                            shipment.timeline.map((event, i) => (
+                                                <div key={i} className="relative">
+                                                    <div className="absolute -left-[15px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-white" />
+                                                    <div>
+                                                        <p className="text-sm font-bold text-gray-900">{event.description || event.status}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">
+                                                            {new Date(event.timestamp).toLocaleString(undefined, {
+                                                                weekday: 'short',
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-gray-400 italic">No history available for this shipment.</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Shipment Documents */}
+                                <div className="pt-4 border-t border-gray-100">
+                                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-4">Shipment Documents</p>
+                                    <div className="bg-white p-4 rounded-xl border border-gray-100">
+                                        <DocumentUpload
+                                            shipmentId={shipment?.id || ''}
+                                            documents={shipment?.documents}
+                                            readOnly={true}
+                                            onUploadComplete={() => {
+                                                // Refresh logic if needed
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </section>
                     </div>

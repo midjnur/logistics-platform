@@ -10,6 +10,7 @@ interface Offer {
     created_at: string;
     updated_at: string;
     status: string;
+    offered_price: number;
 }
 
 interface Shipment {
@@ -22,6 +23,8 @@ interface Shipment {
     price: number;
     created_at: string;
     pickup_time?: string;
+    delivery_time?: string;
+    payment_terms?: string;
     offers?: Offer[];
 }
 
@@ -133,29 +136,37 @@ export default function ShipmentList({ statusFilter, title, description, emptyMe
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
-                                                    <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                    <span className="font-semibold text-gray-700" suppressHydrationWarning>{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
-                                                    <span className="font-semibold text-gray-700">{new Date(shipment.created_at).toLocaleDateString()}</span>
+                                                    <span className="font-semibold text-gray-700" suppressHydrationWarning>{new Date(shipment.created_at).toLocaleDateString()}</span>
                                                 </div>
                                                 {shipment.offers && shipment.offers.length > 0 && (
                                                     <>
                                                         <div>
                                                             <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Offer Received</span>
-                                                            <span className="font-semibold text-gray-700">
+                                                            <span className="font-semibold text-gray-700" suppressHydrationWarning>
                                                                 {new Date(shipment.offers[0].created_at).toLocaleDateString()}
                                                             </span>
                                                         </div>
                                                         {shipment.offers.some(o => o.status === 'ACCEPTED') && (
                                                             <div className="bg-green-50 rounded-lg p-1 -m-1 pl-2">
                                                                 <span className="block text-green-600 font-medium uppercase tracking-wider text-[10px]">Accepted On</span>
-                                                                <span className="font-bold text-green-700">
+                                                                <span className="font-bold text-green-700" suppressHydrationWarning>
                                                                     {new Date(shipment.offers.find(o => o.status === 'ACCEPTED')!.updated_at).toLocaleDateString()}
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </>
+                                                )}
+                                                {shipment.status === 'DELIVERED' && shipment.delivery_time && (
+                                                    <div className="bg-gray-100 rounded-lg p-1 -m-1 pl-2">
+                                                        <span className="block text-gray-500 font-medium uppercase tracking-wider text-[10px]">Delivered On</span>
+                                                        <span className="font-bold text-gray-800" suppressHydrationWarning>
+                                                            {new Date(shipment.delivery_time).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 )}
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">ID</span>
@@ -165,24 +176,61 @@ export default function ShipmentList({ statusFilter, title, description, emptyMe
                                         </div>
                                     </div>
 
-                                    {/* Right: Price & Action */}
-                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[120px]">
-                                        {shipment.price && (
+                                    {/* Right: Price & Payment Status */}
+                                    <div className="flex flex-col items-end justify-between gap-6 min-w-[140px] border-l border-gray-100 pl-6 border-dashed">
+                                        {(shipment.price || shipment.offers?.some(o => o.status === 'ACCEPTED')) ? (
                                             <div className="text-right">
-                                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Price</p>
-                                                <span className="text-3xl font-bold text-gray-900">€{shipment.price.toLocaleString()}</span>
+                                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Cost</p>
+                                                <span className="text-3xl font-black text-gray-900 tracking-tight">
+                                                    €{(shipment.price || shipment.offers?.find(o => o.status === 'ACCEPTED')?.offered_price || 0).toLocaleString()}
+                                                </span>
                                             </div>
-                                        )}
+                                        ) : null}
 
-                                        {shipment.status !== 'DELIVERED' && (
+                                        <div className="flex flex-col items-end gap-3">
+                                            {shipment.status === 'DELIVERED' && (
+                                                <div className="text-right">
+                                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Payment Status</p>
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 text-xs font-bold border border-yellow-100">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                                                        Payment Pending
+                                                    </span>
+                                                    {shipment.payment_terms && shipment.delivery_time && (
+                                                        <p className="text-[10px] text-gray-400 mt-1 font-medium" suppressHydrationWarning>
+                                                            Due: {(() => {
+                                                                const deliveryDate = new Date(shipment.delivery_time);
+                                                                let daysToAdd = 0;
+
+                                                                const terms = shipment.payment_terms.toLowerCase().replace(/_/g, ' ');
+                                                                if (terms.includes('0 - 7') || terms.includes('0-7')) daysToAdd = 7;
+                                                                else if (terms.includes('8 - 14') || terms.includes('8-14')) daysToAdd = 14;
+                                                                else if (terms.includes('15 - 30') || terms.includes('15-30')) daysToAdd = 30;
+                                                                // 'upon arrival' adds 0 days
+
+                                                                const dueDate = new Date(deliveryDate);
+                                                                dueDate.setDate(deliveryDate.getDate() + daysToAdd);
+                                                                return dueDate.toLocaleDateString();
+                                                            })()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {shipment.status !== 'DELIVERED' && shipment.status !== 'CANCELLED' && (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold border border-gray-200">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                                    Payment Pending Delivery
+                                                </span>
+                                            )}
+
                                             <button
                                                 onClick={() => router.push(`/dashboard/shipper/shipment-offers/${shipment.id}`)}
-                                                className="text-sm text-blue-600 font-bold hover:underline flex items-center gap-1"
+                                                className="inline-flex items-center gap-1 text-blue-600 font-bold text-sm hover:text-blue-700 hover:gap-2 transition-all"
                                             >
                                                 View Details
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                                             </button>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -5,6 +5,14 @@ import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 
+interface Offer {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    status: string;
+    offered_price: number;
+}
+
 interface Shipment {
     id: string;
     pickup_address: string;
@@ -13,7 +21,9 @@ interface Shipment {
     weight_kg: number;
     status: string;
     cargo_type: string;
+    price: number;
     created_at: string;
+    offers?: Offer[];
 }
 
 export default function UpcomingShipmentsPage() {
@@ -70,74 +80,101 @@ export default function UpcomingShipmentsPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {shipments.map((shipment) => (
-                        <div
-                            key={shipment.id}
-                            className="backdrop-blur-xl p-5 rounded-2xl border border-white/50 bg-white/40 transition-all hover:shadow-md group relative overflow-hidden"
-                        >
-                            <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
-                                {/* Left: Shipment Context */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="space-y-3 mb-2">
-                                        {/* Row 1: Cargo Type & Status */}
-                                        <div className="flex items-center gap-3">
-                                            <span className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100">
-                                                {shipment.cargo_type}
-                                            </span>
-                                            <span className="px-3 py-1.5 rounded-xl bg-green-100 text-green-700 text-sm font-bold border border-green-200 uppercase tracking-wider">
-                                                Assigned
-                                            </span>
-                                        </div>
+                <div className="glass p-8 rounded-3xl shadow-sm min-h-[400px]">
+                    <div className="grid gap-6">
+                        {shipments.map((shipment) => (
+                            <div
+                                key={shipment.id}
+                                className="backdrop-blur-xl p-5 rounded-2xl border transition-all hover:shadow-md group relative overflow-hidden bg-green-50/40 border-green-100"
+                            >
+                                <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
+                                    {/* Left: Shipment Context */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="space-y-3 mb-2">
+                                            {/* Row 1: Cargo Type & Status */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-bold border border-blue-100">
+                                                    {shipment.cargo_type}
+                                                </span>
+                                                <span className="px-3 py-1.5 rounded-xl bg-green-100 text-green-700 text-sm font-bold border border-green-200 uppercase tracking-wider">
+                                                    Assigned
+                                                </span>
+                                            </div>
 
-                                        {/* Row 2: Route */}
-                                        <div className="flex items-center gap-3 text-sm">
-                                            <div className="flex items-center gap-1 text-gray-900 font-bold">
-                                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                <span>{shipment.pickup_address.split(',')[0]}</span>
+                                            {/* Row 2: Route */}
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    <span>{shipment.pickup_address.split(',')[0]}</span>
+                                                </div>
+                                                <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                                <div className="flex items-center gap-1 text-gray-900 font-bold">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                    <span>{shipment.delivery_address.split(',')[0]}</span>
+                                                </div>
                                             </div>
-                                            <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                                            <div className="flex items-center gap-1 text-gray-900 font-bold">
-                                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                                <span>{shipment.delivery_address.split(',')[0]}</span>
-                                            </div>
-                                        </div>
 
-                                        {/* Row 3: Meta Data Grid */}
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
-                                            <div>
-                                                <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
-                                                <span className="font-semibold text-gray-700">{shipment.weight_kg} kg</span>
-                                            </div>
-                                            <div>
-                                                <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
-                                                <span className="font-semibold text-gray-700">{new Date(shipment.pickup_time).toLocaleDateString()}</span>
-                                            </div>
-                                            <div>
-                                                <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
-                                                <span className="font-semibold text-gray-700">{new Date(shipment.created_at).toLocaleDateString()}</span>
-                                            </div>
-                                            <div>
-                                                <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">ID</span>
-                                                <span className="font-mono text-gray-700">{shipment.id.split('-')[0]}</span>
+                                            {/* Row 3: Meta Data Grid */}
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.weight_kg} kg</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
+                                                    <span className="font-semibold text-gray-700">{new Date(shipment.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                {shipment.offers && shipment.offers.length > 0 && (
+                                                    <>
+                                                        <div>
+                                                            <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Offer Sent</span>
+                                                            <span className="font-semibold text-gray-700">
+                                                                {new Date(shipment.offers[0].created_at).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        {shipment.offers.some(o => o.status === 'ACCEPTED') && (
+                                                            <div className="bg-green-50 rounded-lg p-1 -m-1 pl-2">
+                                                                <span className="block text-green-600 font-medium uppercase tracking-wider text-[10px]">Accepted On</span>
+                                                                <span className="font-bold text-green-700">
+                                                                    {new Date(shipment.offers.find((o: Offer) => o.status === 'ACCEPTED')!.updated_at).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">ID</span>
+                                                    <span className="font-mono text-gray-700">{shipment.id.split('-')[0]}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Right: Action Button */}
-                                <div className="flex flex-col items-end gap-4 justify-start min-w-[120px]">
-                                    <button
-                                        onClick={() => handleConfirmPickup(shipment.id)}
-                                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                                        Driver Arrived
-                                    </button>
+                                    {/* Right: Price & Action */}
+                                    <div className="flex flex-col items-end justify-between gap-6 min-w-[150px] border-l border-gray-100 pl-6 border-dashed">
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Earnings</p>
+                                            <span className="text-3xl font-black text-gray-900 tracking-tight">€{(shipment.price || shipment.offers?.find((o: Offer) => o.status === 'ACCEPTED')?.offered_price || 0).toLocaleString()}</span>
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-3 w-full">
+                                            <button
+                                                onClick={() => handleConfirmPickup(shipment.id)}
+                                                className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 text-sm"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                                Driver Arrived
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
