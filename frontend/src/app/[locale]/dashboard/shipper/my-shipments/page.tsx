@@ -13,6 +13,7 @@ interface Shipment {
     weight_kg: number;
     status: string;
     price: number;
+    distance?: number;
     created_at: string;
     offers?: any[];
 }
@@ -36,7 +37,7 @@ export default function MyShipmentsPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm">
+            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm min-h-[130px]">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{t('myShipments')}</h1>
                     <p className="text-gray-500 mt-1">Track and manage all your shipments</p>
@@ -109,6 +110,10 @@ export default function MyShipmentsPage() {
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
                                                     <span className="font-semibold text-gray-700">Flexible</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Distance</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.distance ? `${shipment.distance.toLocaleString()} km` : '-'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>

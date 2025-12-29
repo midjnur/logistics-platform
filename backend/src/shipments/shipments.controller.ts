@@ -37,6 +37,11 @@ export class ShipmentsController {
     return [];
   }
 
+  @Get('dashboard-stats')
+  async getDashboardStats(@Request() req: { user: any }) {
+    return this.shipmentsService.getDashboardStats(req.user.userId, req.user.role);
+  }
+
   @Get()
   async findAll(@Request() req: { user: any }) {
     // If shipper, show only their shipments

@@ -72,6 +72,9 @@ export class Shipment {
   @Column()
   cargo_type: string;
 
+  @Column({ type: 'int', nullable: true })
+  distance: number;
+
   @Column({ type: 'numeric', precision: 10, scale: 2 })
   weight_kg: number;
 

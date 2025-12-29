@@ -23,6 +23,7 @@ interface Shipment {
     pickup_time: string;
     weight_kg: number;
     cargo_type: string;
+    distance?: number;
     created_at: string;
     payment_terms?: string;
     offers?: Offer[];
@@ -125,6 +126,10 @@ export default function HistoryPage() {
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
                                                     <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Distance</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.distance ? `${shipment.distance.toLocaleString()} km` : '-'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>

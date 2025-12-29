@@ -95,4 +95,105 @@ export class ShipmentsService {
     await this.shipmentsRepository.update(id, updateData);
     return this.findOne(id);
   }
+  async getDashboardStats(userId: string, role: string) {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    let totalShipments = 0;
+    let pendingActions = 0;
+    let earnings = 0;
+    let currentMonthCount = 0;
+    let lastMonthCount = 0;
+
+    if (role === 'SHIPPER') {
+      // Total Shipments
+      totalShipments = await this.shipmentsRepository.count({
+        where: { shipper_id: userId },
+      });
+
+      // Pending Actions (Open or Offered)
+      pendingActions = await this.shipmentsRepository.count({
+        where: [
+          { shipper_id: userId, status: ShipmentStatus.OPEN },
+          { shipper_id: userId, status: ShipmentStatus.OFFERED },
+        ],
+      });
+
+      // Growth
+      currentMonthCount = await this.shipmentsRepository
+        .createQueryBuilder('shipment')
+        .where('shipment.shipper_id = :userId', { userId })
+        .andWhere('shipment.created_at >= :startOfMonth', { startOfMonth })
+        .getCount();
+
+      lastMonthCount = await this.shipmentsRepository
+        .createQueryBuilder('shipment')
+        .where('shipment.shipper_id = :userId', { userId })
+        .andWhere('shipment.created_at >= :startOfLastMonth', { startOfLastMonth })
+        .andWhere('shipment.created_at <= :endOfLastMonth', { endOfLastMonth })
+        .getCount();
+
+    } else if (role === 'CARRIER') {
+      // Total Shipments (Assigned)
+      totalShipments = await this.shipmentsRepository.count({
+        where: { carrier_id: userId, status: ShipmentStatus.DELIVERED },
+      });
+
+      // Pending Actions (Assigned but not Delivered/Cancelled)
+      pendingActions = await this.shipmentsRepository.count({
+        where: [
+          { carrier_id: userId, status: ShipmentStatus.ASSIGNED },
+          { carrier_id: userId, status: ShipmentStatus.DRIVER_AT_PICKUP },
+          { carrier_id: userId, status: ShipmentStatus.LOADING_STARTED },
+          { carrier_id: userId, status: ShipmentStatus.LOADING_FINISHED },
+          { carrier_id: userId, status: ShipmentStatus.IN_TRANSIT },
+          { carrier_id: userId, status: ShipmentStatus.ARRIVED_DELIVERY },
+          { carrier_id: userId, status: ShipmentStatus.UNLOADING_FINISHED },
+        ],
+      });
+
+      // Earnings (Sum of price for delivered shipments)
+      const earningsResult = await this.shipmentsRepository
+        .createQueryBuilder('shipment')
+        .select('SUM(shipment.price)', 'sum')
+        .where('shipment.carrier_id = :userId', { userId })
+        .andWhere('shipment.status = :status', { status: ShipmentStatus.DELIVERED })
+        .getRawOne();
+
+      earnings = parseFloat(earningsResult.sum || '0');
+
+      // Growth (Deliveries this month vs last)
+      currentMonthCount = await this.shipmentsRepository
+        .createQueryBuilder('shipment')
+        .where('shipment.carrier_id = :userId', { userId })
+        .andWhere('shipment.status = :status', { status: ShipmentStatus.DELIVERED })
+        .andWhere('shipment.delivery_time >= :startOfMonth', { startOfMonth })
+        .getCount();
+
+      lastMonthCount = await this.shipmentsRepository
+        .createQueryBuilder('shipment')
+        .where('shipment.carrier_id = :userId', { userId })
+        .andWhere('shipment.status = :status', { status: ShipmentStatus.DELIVERED })
+        .andWhere('shipment.delivery_time >= :startOfLastMonth', { startOfLastMonth })
+        .andWhere('shipment.delivery_time <= :endOfLastMonth', { endOfLastMonth })
+        .getCount();
+    }
+
+    // Calculate Percentage Growth
+    let growthPercent = 0;
+    if (lastMonthCount > 0) {
+      growthPercent = Math.round(((currentMonthCount - lastMonthCount) / lastMonthCount) * 100);
+    } else if (currentMonthCount > 0) {
+      growthPercent = 100; // 0 to something is 100% growth effectively (or infinite)
+    }
+
+    return {
+      totalShipments,
+      pendingActions,
+      earnings,
+      growthPercent: growthPercent > 0 ? `+${growthPercent}%` : `${growthPercent}%`,
+    };
+  }
 }

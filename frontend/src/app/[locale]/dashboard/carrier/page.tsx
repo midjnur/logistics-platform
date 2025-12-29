@@ -11,6 +11,7 @@ interface Shipment {
     delivery_address: string;
     cargo_type: string;
     weight_kg: number;
+    distance?: number;
     status: string;
     created_at: string;
     pickup_time?: string;
@@ -44,7 +45,7 @@ export default function CarrierDashboardPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm">
+            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm min-h-[130px]">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Overview</h1>
                     <p className="text-gray-500 mt-1">Welcome back, track your progress</p>
@@ -55,17 +56,11 @@ export default function CarrierDashboardPage() {
 
             {/* Available Loads Section */}
             <div className="glass p-8 rounded-3xl shadow-sm min-h-[400px]">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                         Recent Opportunities
                     </h2>
-                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1">
-                        View all
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </button>
                 </div>
 
                 {loading ? (
@@ -121,7 +116,7 @@ export default function CarrierDashboardPage() {
                                             </div>
 
                                             {/* Row 3: Meta Data Grid */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-gray-500 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Weight</span>
                                                     <span className="font-semibold text-gray-700">{shipment.weight_kg} kg</span>
@@ -129,6 +124,10 @@ export default function CarrierDashboardPage() {
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
                                                     <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Distance</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.distance ? `${shipment.distance.toLocaleString()} km` : '-'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>
@@ -143,12 +142,12 @@ export default function CarrierDashboardPage() {
                                     </div>
 
                                     {/* Right: Action Button */}
-                                    <div className="flex flex-col items-end gap-4 justify-center min-w-[120px]">
+                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[120px]">
                                         <button
                                             onClick={() => window.location.href = `/en/dashboard/carrier/shipments/${shipment.id}`}
                                             className="text-sm text-blue-600 font-bold hover:underline flex items-center gap-1"
                                         >
-                                            Details
+                                            View Details
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                                         </button>
                                     </div>

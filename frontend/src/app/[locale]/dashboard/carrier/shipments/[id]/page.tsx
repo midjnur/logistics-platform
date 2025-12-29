@@ -5,6 +5,9 @@ import { useTranslations } from 'next-intl';
 import DocumentUpload from '@/components/documents/DocumentUpload';
 import { fetchApi } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const MapPreview = dynamic(() => import('@/components/ui/MapPreview'), { ssr: false });
 
 interface DetailedShipment {
     id: string;
@@ -12,6 +15,11 @@ interface DetailedShipment {
     pickup_time: string;
     delivery_address: string;
     delivery_time: string;
+    distance?: number;
+    pickup_lat: number;
+    pickup_lng: number;
+    delivery_lat: number;
+    delivery_lng: number;
     status: string;
 
     // Cargo
@@ -55,6 +63,7 @@ export default function ShipmentDetailsPage() {
     const [offerPrice, setOfferPrice] = useState('');
     const [offerMessage, setOfferMessage] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [routeCoordinates, setRouteCoordinates] = useState<[number, number][] | null>(null);
 
     useEffect(() => {
         if (params?.id) {
@@ -64,6 +73,25 @@ export default function ShipmentDetailsPage() {
                 .finally(() => setLoading(false));
         }
     }, [params?.id]);
+
+    useEffect(() => {
+        if (shipment?.pickup_lat && shipment?.delivery_lat) {
+            const fetchRoute = async () => {
+                try {
+                    const response = await fetch(
+                        `https://router.project-osrm.org/route/v1/driving/${shipment.pickup_lng},${shipment.pickup_lat};${shipment.delivery_lng},${shipment.delivery_lat}?overview=full&geometries=geojson`
+                    );
+                    const data = await response.json();
+                    if (data.code === 'Ok' && data.routes?.[0]) {
+                        setRouteCoordinates(data.routes[0].geometry.coordinates.map((c: number[]) => [c[1], c[0]]));
+                    }
+                } catch (e) {
+                    // Silent fail
+                }
+            };
+            fetchRoute();
+        }
+    }, [shipment]);
 
     const handleSubmitOffer = async () => {
         if (!offerPrice || !shipment) return;
@@ -123,23 +151,51 @@ export default function ShipmentDetailsPage() {
 
                     <div className="space-y-8">
                         {/* Route timeline */}
-                        <div className="space-y-6 relative">
-                            <div className="absolute left-[15px] top-[15px] bottom-[35px] w-0.5 bg-gradient-to-b from-green-300 via-gray-200 to-red-300" />
-                            <div className="relative pl-10">
-                                <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-green-50 border-4 border-white shadow-sm flex items-center justify-center z-10">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                        <div className="flex flex-col md:flex-row gap-4 items-stretch">
+                            <div className="space-y-6 relative flex-1">
+                                <div className="absolute left-[15px] top-[15px] bottom-[35px] w-0.5 bg-gradient-to-b from-green-300 via-gray-200 to-red-300" />
+                                <div className="relative pl-10">
+                                    <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-green-50 border-4 border-white shadow-sm flex items-center justify-center z-10">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                    </div>
+                                    <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">Pickup</p>
+                                    <p className="text-gray-900 font-bold leading-snug text-lg">{shipment.pickup_address}</p>
+                                    <p className="text-gray-500 text-sm mt-1">{new Date(shipment.pickup_time).toLocaleString()}</p>
                                 </div>
-                                <p className="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">Pickup</p>
-                                <p className="text-gray-900 font-bold leading-snug text-lg">{shipment.pickup_address}</p>
-                                <p className="text-gray-500 text-sm mt-1">{new Date(shipment.pickup_time).toLocaleString()}</p>
+                                <div className="relative pl-10">
+                                    <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-red-50 border-4 border-white shadow-sm flex items-center justify-center z-10">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                    </div>
+                                    <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Delivery</p>
+                                    <p className="text-gray-900 font-bold leading-snug text-lg">{shipment.delivery_address}</p>
+                                    <p className="text-gray-500 text-sm mt-1">{new Date(shipment.delivery_time).toLocaleString()}</p>
+                                </div>
                             </div>
-                            <div className="relative pl-10">
-                                <div className="absolute left-0 top-1 w-8 h-8 rounded-full bg-red-50 border-4 border-white shadow-sm flex items-center justify-center z-10">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                                </div>
-                                <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Delivery</p>
-                                <p className="text-gray-900 font-bold leading-snug text-lg">{shipment.delivery_address}</p>
-                                <p className="text-gray-500 text-sm mt-1">{new Date(shipment.delivery_time).toLocaleString()}</p>
+
+                            {/* Mini Map */}
+                            <div className="w-full md:w-32 h-32 md:h-auto min-h-[120px] rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group">
+                                {shipment.distance && (
+                                    <div className="absolute top-2 right-2 z-[999] bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-sm border border-white/50 flex items-center gap-1.5">
+                                        <div className="text-blue-600">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-900 leading-none">{shipment.distance.toLocaleString()} km</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {shipment.pickup_lat && shipment.delivery_lat ? (
+                                    <MapPreview
+                                        pickup={[shipment.pickup_lat, shipment.pickup_lng]}
+                                        delivery={[shipment.delivery_lat, shipment.delivery_lng]}
+                                        routeCoordinates={routeCoordinates}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                                        No map
+                                    </div>
+                                )}
                             </div>
                         </div>
 

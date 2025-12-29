@@ -176,15 +176,34 @@ export default function DashboardLayout({
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg" />
                     <span className="font-bold text-gray-900 text-lg">Logistics</span>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600 font-medium text-sm bg-red-50 px-3 py-1.5 rounded-full"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Logout
-                </button>
+
+                <div className="flex items-center gap-2">
+                    {user && (
+                        <div className="flex items-center gap-2 pr-2 border-r border-gray-100">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs ring-2 ring-white shadow-sm">
+                                {user.email?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-gray-800 max-w-[80px] truncate leading-tight">
+                                    {user.email?.split('@')[0] || 'User'}
+                                </span>
+                                <span className="text-[10px] text-blue-500 font-bold leading-none">
+                                    {user.role}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 transition-colors"
+                        aria-label="Logout"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                </div>
             </header>
 
             {/* Mobile Bottom Navigation (Scrollable, Icons Only) */}

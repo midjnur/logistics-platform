@@ -11,6 +11,13 @@ export default function DashboardPage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const [stats, setStats] = useState({
+        totalShipments: 0,
+        pendingActions: 0,
+        earnings: 0,
+        growthPercent: '0%'
+    });
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -18,8 +25,14 @@ export default function DashboardPage() {
             return;
         }
 
-        fetchApi('/auth/me')
-            .then((data) => setUser(data))
+        Promise.all([
+            fetchApi('/auth/me'),
+            fetchApi('/shipments/dashboard-stats')
+        ])
+            .then(([userData, statsData]) => {
+                setUser(userData);
+                setStats(statsData);
+            })
             .catch(() => {
                 localStorage.removeItem('token');
                 router.push('/auth/login');
@@ -58,16 +71,18 @@ export default function DashboardPage() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Stats Cards (Placeholders) */}
+                {/* Stats Cards */}
                 <div className="glass p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                         </div>
-                        <span className="text-green-500 font-bold bg-green-50 px-2 py-1 rounded-lg text-xs">+12%</span>
+                        <span className={`font-bold px-2 py-1 rounded-lg text-xs ${stats.growthPercent.includes('+') ? 'text-green-500 bg-green-50' : 'text-gray-500 bg-gray-50'}`}>
+                            {stats.growthPercent}
+                        </span>
                     </div>
                     <h3 className="text-gray-500 text-sm font-medium">Total Shipments</h3>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">24</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalShipments}</p>
                 </div>
 
                 {user.role === 'CARRIER' && (
@@ -80,7 +95,7 @@ export default function DashboardPage() {
                             </div>
                             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Earnings</span>
                         </div>
-                        <div className="text-3xl font-bold text-gray-900">€12,450</div>
+                        <div className="text-3xl font-bold text-gray-900">€{stats.earnings.toLocaleString()}</div>
                         <p className="text-xs text-gray-400 mt-2 font-medium">Total revenue this month</p>
                     </div>
                 )}
@@ -92,7 +107,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <h3 className="text-gray-500 text-sm font-medium">Pending Actions</h3>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">3</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{stats.pendingActions}</p>
                 </div>
             </div>
 

@@ -23,6 +23,7 @@ interface Shipment {
     status: string;
     cargo_type: string;
     price: number;
+    distance?: number;
     created_at: string;
     offers?: Offer[];
 }
@@ -122,6 +123,10 @@ export default function ActiveShipmentsPage() {
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Pickup</span>
                                                     <span className="font-semibold text-gray-700">{shipment.pickup_time ? new Date(shipment.pickup_time).toLocaleDateString() : 'Flexible'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Distance</span>
+                                                    <span className="font-semibold text-gray-700">{shipment.distance ? `${shipment.distance.toLocaleString()} km` : '-'}</span>
                                                 </div>
                                                 <div>
                                                     <span className="block text-gray-400 font-medium uppercase tracking-wider text-[10px]">Created</span>

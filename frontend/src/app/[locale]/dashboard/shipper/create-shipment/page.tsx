@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
@@ -19,6 +19,11 @@ export default function CreateShipmentPage() {
     const [currentStep, setCurrentStep] = useState(0);
     const [loading, setLoading] = useState(false);
 
+    // Scroll to top on step change for better mobile UX
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentStep]);
+
     // Initial State matching the new schema
     const [formData, setFormData] = useState({
         // Step 1: Route
@@ -26,6 +31,11 @@ export default function CreateShipmentPage() {
         pickup_time: '',
         delivery_address: '',
         delivery_time: '',
+        pickup_lat: 0,
+        pickup_lng: 0,
+        delivery_lat: 0,
+        delivery_lng: 0,
+        distance: 0,
 
         // Step 2: Cargo
         cargo_type: '',
@@ -96,10 +106,7 @@ export default function CreateShipmentPage() {
             const payload = {
                 ...formData,
                 weight_kg: parseFloat(formData.weight_kg) || 0,
-                pickup_lat: 0, // Mock for now or use geocoding
-                pickup_lng: 0,
-                delivery_lat: 0,
-                delivery_lng: 0,
+                distance: formData.distance || 0,
             };
 
             await fetchApi('/shipments', {
@@ -134,7 +141,7 @@ export default function CreateShipmentPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="h-full flex flex-col"
+                            className="flex flex-col"
                         >
                             {currentStep === 0 && <RouteStep data={formData} update={updateData} />}
                             {currentStep === 1 && <CargoStep data={formData} update={updateData} />}
@@ -149,8 +156,8 @@ export default function CreateShipmentPage() {
                             onClick={prevStep}
                             disabled={currentStep === 0}
                             className={`px-6 py-3 rounded-xl font-medium transition-all ${currentStep === 0
-                                    ? 'opacity-0 cursor-default'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'opacity-0 cursor-default'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Back

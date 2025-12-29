@@ -13,6 +13,7 @@ interface Shipment {
     weight_kg: number;
     pickup_time?: string;
     delivery_time?: string;
+    distance?: number;
 }
 
 export default function ActiveShipmentsPage() {
@@ -91,6 +92,13 @@ export default function ActiveShipmentsPage() {
                                     <p className="font-medium">{shipment.delivery_address}</p>
                                 </div>
                             </div>
+
+                            {shipment.distance && (
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-500">Total Distance</p>
+                                    <p className="font-medium">{shipment.distance.toLocaleString()} km</p>
+                                </div>
+                            )}
 
                             <div className="border-t pt-4 flex justify-end gap-3">
                                 {shipment.status === 'OFFERED' && (
