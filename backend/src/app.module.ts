@@ -16,6 +16,8 @@ import { Carrier } from './carriers/carrier.entity';
 import { Vehicle } from './vehicles/vehicle.entity';
 import { Shipment } from './shipments/shipment.entity';
 import { Offer } from './offers/offer.entity';
+import { Notification } from './notifications/notification.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,7 +33,7 @@ import { Offer } from './offers/offer.entity';
           password: process.env.POSTGRES_PASSWORD,
           database: process.env.POSTGRES_DB,
         }),
-      entities: [User, Carrier, Vehicle, Shipment, Document, Offer],
+      entities: [User, Carrier, Vehicle, Shipment, Document, Offer, Notification],
       synchronize: true, // Set to false in production
       ssl: (process.env.POSTGRES_HOST?.includes('supabase') || process.env.DATABASE_URL?.includes('supabase'))
         ? { rejectUnauthorized: false }
@@ -44,6 +46,7 @@ import { Offer } from './offers/offer.entity';
     DocumentsModule,
     AuthModule,
     OffersModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

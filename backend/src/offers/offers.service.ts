@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Offer, OfferStatus } from './offer.entity';
 import { Shipment, ShipmentStatus } from '../shipments/shipment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OffersService {
@@ -11,6 +12,7 @@ export class OffersService {
     private offersRepository: Repository<Offer>,
     @InjectRepository(Shipment)
     private shipmentsRepository: Repository<Shipment>,
+    private notificationsService: NotificationsService,
   ) { }
 
   async create(offerData: Partial<Offer>): Promise<Offer> {
@@ -21,6 +23,15 @@ export class OffersService {
     if (offer.shipment_id) {
       const shipment = await this.shipmentsRepository.findOne({ where: { id: offer.shipment_id } });
       if (shipment) {
+        // Notify Shipper
+        await this.notificationsService.create(
+          shipment.shipper_id,
+          'New Offer Received',
+          `You have received an offer for ${shipment.pickup_address}`,
+          'OFFER_RECEIVED',
+          { offerId: savedOffer.id, shipmentId: shipment.id }
+        );
+
         // Only update if not already assigned/completed
         if (['OPEN', 'OFFERED'].includes(shipment.status)) {
           const newTimelineEntry = {
@@ -77,6 +88,15 @@ export class OffersService {
         price: offer.offered_price,
         timeline: [...(shipment.timeline || []), newTimelineEntry],
       });
+
+      // Notify Carrier
+      await this.notificationsService.create(
+        offer.carrier_id,
+        'Offer Accepted',
+        `Your offer for shipment #${offer.shipment_id.slice(0, 8)} has been accepted!`,
+        'OFFER_ACCEPTED',
+        { offerId: offer.id, shipmentId: offer.shipment_id }
+      );
     }
 
     // Reject other offers for this shipment? (Optional/Future)

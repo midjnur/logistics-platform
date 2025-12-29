@@ -42,65 +42,70 @@ export class AuthService {
     registerDto: RegisterDto,
     files?: { [key: string]: Express.Multer.File[] },
   ) {
-    // Check if user exists
-    const existingUser = await this.usersService.findOne(registerDto.email);
-    if (existingUser) {
-      throw new UnauthorizedException('User already exists');
-    }
+    try {
+      // Check if user exists
+      const existingUser = await this.usersService.findOne(registerDto.email);
+      if (existingUser) {
+        throw new UnauthorizedException('User already exists');
+      }
 
-    // Create user
-    const newUser = await this.usersService.create({
-      email: registerDto.email,
-      phone: registerDto.phone,
-      password_hash: registerDto.password, // This will be hashed in UsersService
-      role: registerDto.role,
-      language: registerDto.language || 'en',
-    });
-
-    // If role is CARRIER, create carrier profile
-    if (newUser.role === UserRole.CARRIER) {
-      await this.carriersService.create({
-        user_id: newUser.id,
-        first_name: registerDto.firstName || '',
-        last_name: registerDto.lastName || '',
-        company_name: registerDto.companyName || '',
-        tax_id: registerDto.taxId || '',
-        passport_number: registerDto.passportNumber || '',
-        bank_name: registerDto.bankName,
-        bank_code: registerDto.bankCode,
-        bank_account: registerDto.bankAccount,
-        currency: registerDto.currency,
-        city: registerDto.city,
-        country: registerDto.country,
+      // Create user
+      const newUser = await this.usersService.create({
+        email: registerDto.email,
+        phone: registerDto.phone,
+        password_hash: registerDto.password, // This will be hashed in UsersService
+        role: registerDto.role,
+        language: registerDto.language || 'en',
       });
 
-      // Handle file uploads
-      if (files) {
-        if (files.driverLicense?.[0]) {
-          await this.documentsService.uploadFile(
-            files.driverLicense[0],
-            newUser.id,
-            DocumentType.LICENSE,
-          );
-        }
-        if (files.passport?.[0]) {
-          await this.documentsService.uploadFile(
-            files.passport[0],
-            newUser.id,
-            DocumentType.PASSPORT,
-          );
-        }
-        if (files.insurance?.[0]) {
-          await this.documentsService.uploadFile(
-            files.insurance[0],
-            newUser.id,
-            DocumentType.INSURANCE,
-          );
-        }
-        // Add more as needed
-      }
-    }
+      // If role is CARRIER, create carrier profile
+      if (newUser.role === UserRole.CARRIER) {
+        await this.carriersService.create({
+          user_id: newUser.id,
+          first_name: registerDto.firstName || '',
+          last_name: registerDto.lastName || '',
+          company_name: registerDto.companyName || '',
+          tax_id: registerDto.taxId || '',
+          passport_number: registerDto.passportNumber || '',
+          bank_name: registerDto.bankName,
+          bank_code: registerDto.bankCode,
+          bank_account: registerDto.bankAccount,
+          currency: registerDto.currency,
+          city: registerDto.city,
+          country: registerDto.country,
+        });
 
-    return this.login(newUser);
+        // Handle file uploads
+        if (files) {
+          if (files.driverLicense?.[0]) {
+            await this.documentsService.uploadFile(
+              files.driverLicense[0],
+              newUser.id,
+              DocumentType.LICENSE,
+            );
+          }
+          if (files.passport?.[0]) {
+            await this.documentsService.uploadFile(
+              files.passport[0],
+              newUser.id,
+              DocumentType.PASSPORT,
+            );
+          }
+          if (files.insurance?.[0]) {
+            await this.documentsService.uploadFile(
+              files.insurance[0],
+              newUser.id,
+              DocumentType.INSURANCE,
+            );
+          }
+        }
+      }
+
+      return this.login(newUser);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) throw error;
+      console.error('Registration Error:', error);
+      throw new UnauthorizedException(`Registration failed: ${error.message}`);
+    }
   }
 }

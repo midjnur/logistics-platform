@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { fetchApi } from '@/lib/api';
+import { SocketProvider } from '@/context/SocketContext';
+import NotificationBell from '@/components/layout/NotificationBell';
+import ToastContainer from '@/components/ui/ToastContainer';
 
 export default function DashboardLayout({
     children,
@@ -14,8 +17,10 @@ export default function DashboardLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [user, setUser] = useState<any>(null);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const token = localStorage.getItem('token');
         if (!token) {
             router.push('/auth/login');
@@ -63,177 +68,197 @@ export default function DashboardLayout({
 
     const navItems = user ? allNavItems.filter(item => item.roles.includes(user.role)) : [];
 
+    if (!mounted) return null;
+
     return (
 
 
-        <div className="flex h-screen overflow-hidden bg-gray-50/30">
-            {/* Desktop Sidebar (Hidden on Mobile) */}
-            <aside className="hidden md:flex w-64 glass-panel flex-col justify-between p-6 z-20">
-                <div>
-                    <div className="flex items-center gap-3 mb-8 px-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg" />
-                        <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
-                            Logistics
-                        </h1>
+        <SocketProvider>
+            <div className="flex h-screen overflow-hidden bg-gray-50/30">
+                <ToastContainer />
+                {/* Desktop Sidebar (Hidden on Mobile) */}
+                <aside className="hidden md:flex w-64 glass-panel flex-col justify-between p-6 z-20">
+                    <div>
+                        <div className="flex items-center gap-3 mb-8 px-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg" />
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+                                Logistics
+                            </h1>
+                        </div>
+
+                        {/* Status Indicator (Minimalist) */}
+                        {(user?.role === 'CARRIER' || user?.role === 'SHIPPER') && (
+                            <div className="mb-6 px-4">
+                                <div className="flex items-center gap-3">
+                                    {(() => {
+                                        let status = 'PENDING';
+
+                                        if (user.role === 'CARRIER') {
+                                            status = user.carrier?.verification_status || 'PENDING';
+                                        } else {
+                                            // For Shippers, use is_active as proxy, or default to VERIFIED if true
+                                            status = user.is_active ? 'VERIFIED' : 'PENDING';
+                                        }
+
+                                        let color = 'bg-yellow-400';
+                                        let text = 'Pending Approval';
+                                        let icon = (
+                                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
+                                        );
+
+                                        if (status === 'VERIFIED') {
+                                            color = 'bg-green-500';
+                                            text = 'Account Active';
+                                            icon = (
+                                                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                            );
+                                        } else if (status === 'REJECTED') {
+                                            color = 'bg-red-500';
+                                            text = 'Account Rejected';
+                                            icon = (
+                                                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                            );
+                                        }
+
+                                        return (
+                                            <>
+                                                <div className="flex-shrink-0">
+                                                    {icon}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-700">{text}</p>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
+                        <nav className="space-y-2">
+                            {navItems.map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive
+                                            ? 'bg-blue-600/10 text-blue-700 shadow-sm backdrop-blur-sm'
+                                            : 'text-gray-600 hover:bg-white/40 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        <svg className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                        </svg>
+                                        <span className="font-medium">{item.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </nav>
                     </div>
 
-                    {/* Status Indicator (Minimalist) */}
-                    {(user?.role === 'CARRIER' || user?.role === 'SHIPPER') && (
-                        <div className="mb-6 px-4">
-                            <div className="flex items-center gap-3">
-                                {(() => {
-                                    let status = 'PENDING';
-
-                                    if (user.role === 'CARRIER') {
-                                        status = user.carrier?.verification_status || 'PENDING';
-                                    } else {
-                                        // For Shippers, use is_active as proxy, or default to VERIFIED if true
-                                        status = user.is_active ? 'VERIFIED' : 'PENDING';
-                                    }
-
-                                    let color = 'bg-yellow-400';
-                                    let text = 'Pending Approval';
-                                    let icon = (
-                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
-                                    );
-
-                                    if (status === 'VERIFIED') {
-                                        color = 'bg-green-500';
-                                        text = 'Account Active';
-                                        icon = (
-                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                                        );
-                                    } else if (status === 'REJECTED') {
-                                        color = 'bg-red-500';
-                                        text = 'Account Rejected';
-                                        icon = (
-                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                                        );
-                                    }
-
-                                    return (
-                                        <>
-                                            <div className="flex-shrink-0">
-                                                {icon}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-700">{text}</p>
-                                            </div>
-                                        </>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    )}
-
-                    <nav className="space-y-2">
-                        {navItems.map((item) => {
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive
-                                        ? 'bg-blue-600/10 text-blue-700 shadow-sm backdrop-blur-sm'
-                                        : 'text-gray-600 hover:bg-white/40 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <svg className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-                                    </svg>
-                                    <span className="font-medium">{item.label}</span>
-                                </Link>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                <div className="border-t border-gray-200/50 pt-6">
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-600 hover:bg-red-50/50 transition-all font-medium"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Logout
-                    </button>
-                    <div className="flex items-center gap-3 mt-6 px-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-white/50 flex items-center justify-center text-white font-bold">
-                            {user?.email?.[0]?.toUpperCase() || 'U'}
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-bold text-gray-800 truncate" title={user?.email}>{user?.email || 'Loading...'}</p>
-                            <p className="text-xs text-blue-600 font-medium">{user?.role || 'Guest'}</p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            {/* Mobile Header (Visible only on Mobile) */}
-            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 z-40 flex items-center justify-between px-4 animate-in slide-in-from-top-2">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg" />
-                    <span className="font-bold text-gray-900 text-lg">Logistics</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {user && (
-                        <div className="flex items-center gap-2 pr-2 border-r border-gray-100">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs ring-2 ring-white shadow-sm">
-                                {user.email?.[0]?.toUpperCase() || 'U'}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold text-gray-800 max-w-[80px] truncate leading-tight">
-                                    {user.email?.split('@')[0] || 'User'}
-                                </span>
-                                <span className="text-[10px] text-blue-500 font-bold leading-none">
-                                    {user.role}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center justify-center bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 transition-colors"
-                        aria-label="Logout"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </button>
-                </div>
-            </header>
-
-            {/* Mobile Bottom Navigation (Scrollable, Icons Only) */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-200 z-50 px-2 py-2 flex items-center gap-2 overflow-x-auto safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)] scrollbar-hide">
-                {navItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex flex-col items-center justify-center min-w-[70px] p-2 rounded-xl transition-all duration-300 relative ${isActive
-                                ? 'text-blue-600'
-                                : 'text-gray-400 hover:text-gray-600'
-                                }`}
+                    <div className="border-t border-gray-200/50 pt-6">
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-600 hover:bg-red-50/50 transition-all font-medium"
                         >
-                            {isActive && (
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b-full shadow-[0_2px_8px_rgba(37,99,235,0.5)]" />
-                            )}
-                            <svg className={`w-6 h-6 ${isActive ? 'scale-110 drop-shadow-sm' : ''} transition-transform`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
-                        </Link>
-                    );
-                })}
-            </nav>
+                            Logout
+                        </button>
+                        <div className="flex items-center gap-3 mt-6 px-2">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 ring-2 ring-white/50 flex items-center justify-center text-white font-bold">
+                                {user?.email?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-bold text-gray-800 truncate" title={user?.email}>{user?.email || 'Loading...'}</p>
+                                <p className="text-xs text-blue-600 font-medium">{user?.role || 'Guest'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
 
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto z-10 p-4 pt-20 md:p-8 pb-24 md:pb-8 md:pt-8 w-full">
-                {children}
-            </main>
-        </div>
+                {/* Mobile Header (Visible only on Mobile) */}
+                <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 z-40 flex items-center justify-between px-4 animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-purple-500 shadow-lg" />
+                        <span className="font-bold text-gray-900 text-lg">Logistics</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <NotificationBell />
+                        {user && (
+                            <div className="flex items-center gap-2 pr-2 border-r border-gray-100">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs ring-2 ring-white shadow-sm">
+                                    {user.email?.[0]?.toUpperCase() || 'U'}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-gray-800 max-w-[100px] truncate leading-tight">
+                                        {(() => {
+                                            if (user.role === 'CARRIER' && user.carrier) {
+                                                return user.carrier.company_name || user.carrier.first_name || user.email?.split('@')[0];
+                                            }
+                                            return user.email?.split('@')[0] || 'User';
+                                        })()}
+                                    </span>
+                                    <span className="text-[10px] text-blue-500 font-bold leading-none">
+                                        {user.role}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center justify-center bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 transition-colors"
+                            aria-label="Logout"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
+                    </div>
+                </header>
+
+                {/* Mobile Bottom Navigation (Scrollable, Icons Only) */}
+                <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-200 z-50 px-2 py-2 flex items-center gap-2 overflow-x-auto safe-area-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.05)] scrollbar-hide">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex flex-col items-center justify-center min-w-[70px] p-2 rounded-xl transition-all duration-300 relative ${isActive
+                                    ? 'text-blue-600'
+                                    : 'text-gray-400 hover:text-gray-600'
+                                    }`}
+                            >
+                                {isActive && (
+                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-blue-600 rounded-b-full shadow-[0_2px_8px_rgba(37,99,235,0.5)]" />
+                                )}
+                                <svg className={`w-6 h-6 ${isActive ? 'scale-110 drop-shadow-sm' : ''} transition-transform`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                </svg>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                <main className="flex-1 overflow-y-auto z-10 p-4 pt-20 md:p-8 pb-24 md:pb-8 md:pt-8 w-full">
+                    {/* Header with Bell on Desktop/Tablet (or just inside main area top right?) */}
+                    {/* Actually, let's put the bell in the top right of the main content or sidebar? Sidebar is weird. */}
+                    {/* Let's put a header in the main content for desktop if not exists, or floating? */}
+                    {/* For now, let's add it to Mobile Header and maybe a new Desktop Header bar if there isn't one. */}
+                    {/* The design seems to have sidebar but no top bar on desktop? */}
+                    {/* Let's add a floating header or just insert into sidebar? Sidebar doesn't have space. */}
+                    {/* Creating a simple top bar for desktop main area just for the bell and user info if needed. */}
+                    <div className="hidden md:flex justify-end mb-6">
+                        <NotificationBell />
+                    </div>
+                    {children}
+                </main>
+            </div>
+        </SocketProvider>
     );
 }

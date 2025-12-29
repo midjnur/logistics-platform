@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from '@/lib/toast';
 import DocumentUpload from '@/components/documents/DocumentUpload';
 import { fetchApi } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
@@ -106,10 +107,10 @@ export default function ShipmentDetailsPage() {
                     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                 }),
             });
-            alert('Offer submitted successfully!');
+            toast.success('Offer submitted successfully!', 'The shipper will be notified.');
             router.push('/dashboard/carrier');
         } catch (err) {
-            alert('Failed to submit offer');
+            toast.error('Failed to submit offer', 'Please check your connection and try again.');
         } finally {
             setSubmitting(false);
         }

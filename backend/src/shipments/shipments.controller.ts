@@ -48,9 +48,12 @@ export class ShipmentsController {
     if (req.user.role === 'SHIPPER') {
       return this.shipmentsService.findAll(req.user.userId);
     }
-    // If carrier, exclude shipments they already offered on
+    // If carrier, exclude shipments they already offered on, AND show only OPEN/OFFERED
     if (req.user.role === 'CARRIER') {
-      return this.shipmentsService.findAll(undefined, req.user.userId);
+      return this.shipmentsService.findAll(undefined, req.user.userId, [
+        ShipmentStatus.OPEN,
+        ShipmentStatus.OFFERED
+      ]);
     }
     // If admin, show all available shipments
     return this.shipmentsService.findAll();

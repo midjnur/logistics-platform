@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 import ShipmentProgressControl from '@/components/dashboard/ShipmentProgressControl';
+import LocationTrackingPanel from '@/components/tracking/LocationTrackingPanel';
+import { useSocket } from '@/context/SocketContext';
 
 interface Offer {
     id: string;
@@ -43,6 +45,14 @@ export default function ActiveShipmentsPage() {
     const [shipments, setShipments] = useState<Shipment[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Tracking Logic
+    const { socket } = useSocket();
+    const [trackingShipments, setTrackingShipments] = useState<Set<string>>(new Set());
+    const [trackingError, setTrackingError] = useState<string | null>(null);
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+    const [lastUpdates, setLastUpdates] = useState<Record<string, Date>>({});
+    const watchIds = useRef<Record<string, number>>({});
+
     const loadShipments = () => {
         fetchApi('/shipments/my-shipments')
             .then(data => setShipments(data.filter((s: Shipment) => ACTIVE_STATUSES.includes(s.status))))
@@ -52,7 +62,71 @@ export default function ActiveShipmentsPage() {
 
     useEffect(() => {
         loadShipments();
+        return () => {
+            // Cleanup all watchers on unmount
+            Object.values(watchIds.current).forEach(id => navigator.geolocation.clearWatch(id));
+        };
     }, []);
+
+    const startTracking = (shipmentId: string) => {
+        if (!socket) {
+            setTrackingError('Connection lost. Reconnecting...');
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            setTrackingError('Geolocation is not supported by your browser');
+            return;
+        }
+
+        const watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                setHasPermission(true);
+                setTrackingError(null);
+
+                // Add acknowledgement callback
+                socket.emit('location-update', {
+                    shipmentId,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    speed: position.coords.speed,
+                    heading: position.coords.heading,
+                    timestamp: position.timestamp
+                }, (response: any) => {
+                    if (response?.success) {
+                        setLastUpdates(prev => ({ ...prev, [shipmentId]: new Date() }));
+                    }
+                });
+            },
+            (error) => {
+                console.error('Tracking error:', error);
+                setHasPermission(false);
+                setTrackingError(error.message);
+                stopTracking(shipmentId);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+
+        watchIds.current[shipmentId] = watchId;
+        setTrackingShipments(prev => new Set(prev).add(shipmentId));
+    };
+
+    const stopTracking = (shipmentId: string) => {
+        const watchId = watchIds.current[shipmentId];
+        if (watchId !== undefined) {
+            navigator.geolocation.clearWatch(watchId);
+            delete watchIds.current[shipmentId];
+        }
+        setTrackingShipments(prev => {
+            const next = new Set(prev);
+            next.delete(shipmentId);
+            return next;
+        });
+    };
 
     if (loading) return <div className="flex justify-center p-12">Loading...</div>;
 
@@ -159,16 +233,27 @@ export default function ActiveShipmentsPage() {
                                     </div>
 
                                     {/* Right: Progress Control & Earnings */}
-                                    <div className="flex flex-col items-end justify-between gap-6 min-w-[280px] border-l border-gray-100 pl-6 border-dashed">
-                                        <div className="text-right w-full">
-                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Earnings</p>
+                                    <div className="w-full md:w-auto flex flex-col md:items-end justify-between gap-6 md:min-w-[280px] md:border-l border-gray-100 md:pl-6 md:border-dashed mt-6 md:mt-0">
+                                        <div className="flex items-center justify-between w-full md:block md:text-right">
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1 md:mb-1">Total Earnings</p>
                                             <span className="text-3xl font-black text-gray-900 tracking-tight">€{(shipment.price || shipment.offers?.find((o: Offer) => o.status === 'ACCEPTED')?.offered_price || 0).toLocaleString()}</span>
                                         </div>
 
-                                        <div className="w-full bg-white/50 rounded-xl p-2 border border-gray-100">
+                                        <div className="w-full bg-white/50 rounded-xl p-2 border border-gray-100 space-y-4">
                                             <ShipmentProgressControl
                                                 shipment={shipment}
                                                 onStatusUpdate={loadShipments}
+                                            />
+
+                                            {/* Location Tracking Panel */}
+                                            <LocationTrackingPanel
+                                                shipmentId={shipment.id}
+                                                isTracking={trackingShipments.has(shipment.id)}
+                                                hasPermission={hasPermission}
+                                                error={trackingError}
+                                                lastUpdate={lastUpdates[shipment.id]}
+                                                onStartTracking={() => startTracking(shipment.id)}
+                                                onStopTracking={() => stopTracking(shipment.id)}
                                             />
                                         </div>
                                     </div>

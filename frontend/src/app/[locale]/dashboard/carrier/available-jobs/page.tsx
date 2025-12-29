@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from '@/lib/toast';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 
@@ -61,11 +62,11 @@ export default function AvailableJobsPage() {
                     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
                 }),
             });
-            alert('Offer submitted successfully!');
+            toast.success('Offer submitted successfully!', 'The shipper will receive your offer immediately.');
             // Optionally, remove the job from the list after an offer is submitted
             setJobs(prev => prev.filter(j => j.id !== jobId));
         } catch (err) {
-            alert('Failed to submit offer');
+            toast.error('Failed to submit offer', 'Please try again.');
         }
     };
 

@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Shipment, ShipmentStatus } from './shipment.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ShipmentsService {
   constructor(
     @InjectRepository(Shipment)
     private shipmentsRepository: Repository<Shipment>,
+    private notificationsService: NotificationsService,
   ) { }
 
   async create(shipmentData: Partial<Shipment>): Promise<Shipment> {
@@ -21,12 +23,24 @@ export class ShipmentsService {
         },
       ],
     });
-    return this.shipmentsRepository.save(shipment);
+    const saved = await this.shipmentsRepository.save(shipment);
+
+    // Notify all carriers
+    await this.notificationsService.createForRole(
+      'CARRIER',
+      'New Shipment Available',
+      `From ${saved.pickup_address} to ${saved.delivery_address}`,
+      'SHIPMENT_CREATED',
+      { shipmentId: saved.id }
+    );
+
+    return saved;
   }
 
   async findAll(
     shipperId?: string,
     excludeCarrierId?: string,
+    statuses?: ShipmentStatus[],
   ): Promise<Shipment[]> {
     const query = this.shipmentsRepository.createQueryBuilder('shipment');
 
@@ -46,6 +60,10 @@ export class ShipmentsService {
       // Filter out shipments where such an offer exists (is NOT NULL)
       // Actually we want where offer IS NULL (no match found)
       query.andWhere('offer.id IS NULL');
+    }
+
+    if (statuses && statuses.length > 0) {
+      query.andWhere('shipment.status IN (:...statuses)', { statuses });
     }
 
     query.orderBy('shipment.created_at', 'DESC');
@@ -93,7 +111,19 @@ export class ShipmentsService {
     updateData.timeline = [...(shipment.timeline || []), newTimelineEntry];
 
     await this.shipmentsRepository.update(id, updateData);
-    return this.findOne(id);
+    const updated = await this.findOne(id);
+
+    if (updated) {
+      await this.notificationsService.create(
+        updated.shipper_id,
+        'Shipment Update',
+        `Your shipment is now ${status}`,
+        'SHIPMENT_STATUS_UPDATE',
+        { shipmentId: id, status }
+      );
+    }
+
+    return updated;
   }
   async getDashboardStats(userId: string, role: string) {
     const now = new Date();

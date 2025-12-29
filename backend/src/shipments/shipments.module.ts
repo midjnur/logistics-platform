@@ -4,8 +4,13 @@ import { ShipmentsService } from './shipments.service';
 import { ShipmentsController } from './shipments.controller';
 import { Shipment } from './shipment.entity';
 
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Shipment])],
+  imports: [
+    TypeOrmModule.forFeature([Shipment]),
+    NotificationsModule,
+  ],
   providers: [ShipmentsService],
   controllers: [ShipmentsController],
 })
