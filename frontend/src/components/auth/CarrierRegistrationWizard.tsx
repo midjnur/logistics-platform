@@ -94,24 +94,24 @@ export default function CarrierRegistrationWizard({ initialData }: WizardProps) 
     const prevStep = () => setStep(prev => prev - 1);
 
     return (
-        <div className="w-full max-w-2xl mx-auto glass p-10 rounded-3xl shadow-2xl text-gray-800">
-            <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 tracking-tight">Carrier Registration</h2>
+        <div className="w-full max-w-2xl mx-auto glass p-6 md:p-10 rounded-3xl shadow-2xl text-gray-800">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-center text-gray-900 tracking-tight">Carrier Registration</h2>
 
             {error && <div className="bg-red-500/10 border border-red-500/20 text-red-700 p-4 rounded-xl mb-6 backdrop-blur-sm">{error}</div>}
 
-            <div className="mb-8 flex justify-between items-center text-sm font-medium px-4">
+            <div className="mb-8 flex justify-between items-center text-xs md:text-sm font-medium px-2 md:px-4">
                 <div className={`flex flex-col items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all ${step >= 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-200'}`}>1</div>
                     <span>Account</span>
                 </div>
-                <div className="h-1 flex-1 mx-4 bg-gray-200 rounded-full">
+                <div className="h-1 flex-1 mx-2 md:mx-4 bg-gray-200 rounded-full">
                     <div className={`h-full rounded-full bg-blue-500 transition-all duration-500 ${step >= 2 ? 'w-full' : step > 1 ? 'w-1/2' : 'w-0'}`}></div>
                 </div>
                 <div className={`flex flex-col items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all ${step >= 2 ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-200'}`}>2</div>
                     <span>Company</span>
                 </div>
-                <div className="h-1 flex-1 mx-4 bg-gray-200 rounded-full">
+                <div className="h-1 flex-1 mx-2 md:mx-4 bg-gray-200 rounded-full">
                     <div className={`h-full rounded-full bg-blue-500 transition-all duration-500 ${step >= 3 ? 'w-full' : 'w-0'}`}></div>
                 </div>
                 <div className={`flex flex-col items-center ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -139,7 +139,7 @@ export default function CarrierRegistrationWizard({ initialData }: WizardProps) 
                             className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
                             value={formData.phone} onChange={handleChange}
                         />
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 name="firstName" placeholder="First Name" required
                                 className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
@@ -160,7 +160,7 @@ export default function CarrierRegistrationWizard({ initialData }: WizardProps) 
                 {step === 2 && (
                     <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                         <h3 className="text-xl font-semibold text-gray-700 mb-2">Company & Bank Details</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 name="companyName" placeholder="Company Name (Optional)"
                                 className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
@@ -201,7 +201,7 @@ export default function CarrierRegistrationWizard({ initialData }: WizardProps) 
                             className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"
                             value={formData.addressLine1} onChange={handleChange}
                         />
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input
                                 name="city" placeholder="City" required
                                 className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all"

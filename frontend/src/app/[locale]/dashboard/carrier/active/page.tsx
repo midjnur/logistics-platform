@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
 import ShipmentProgressControl from '@/components/dashboard/ShipmentProgressControl';
-import LocationTrackingPanel from '@/components/tracking/LocationTrackingPanel';
 import { useSocket } from '@/context/SocketContext';
 
 interface Offer {
@@ -46,12 +45,9 @@ export default function ActiveShipmentsPage() {
     const [loading, setLoading] = useState(true);
 
     // Tracking Logic
+    // Tracking Logic
+    // Tracking logic moved to global Carrier Dashboard context
     const { socket } = useSocket();
-    const [trackingShipments, setTrackingShipments] = useState<Set<string>>(new Set());
-    const [trackingError, setTrackingError] = useState<string | null>(null);
-    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-    const [lastUpdates, setLastUpdates] = useState<Record<string, Date>>({});
-    const watchIds = useRef<Record<string, number>>({});
 
     const loadShipments = () => {
         fetchApi('/shipments/my-shipments')
@@ -62,71 +58,9 @@ export default function ActiveShipmentsPage() {
 
     useEffect(() => {
         loadShipments();
-        return () => {
-            // Cleanup all watchers on unmount
-            Object.values(watchIds.current).forEach(id => navigator.geolocation.clearWatch(id));
-        };
     }, []);
 
-    const startTracking = (shipmentId: string) => {
-        if (!socket) {
-            setTrackingError('Connection lost. Reconnecting...');
-            return;
-        }
-
-        if (!navigator.geolocation) {
-            setTrackingError('Geolocation is not supported by your browser');
-            return;
-        }
-
-        const watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                setHasPermission(true);
-                setTrackingError(null);
-
-                // Add acknowledgement callback
-                socket.emit('location-update', {
-                    shipmentId,
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                    speed: position.coords.speed,
-                    heading: position.coords.heading,
-                    timestamp: position.timestamp
-                }, (response: any) => {
-                    if (response?.success) {
-                        setLastUpdates(prev => ({ ...prev, [shipmentId]: new Date() }));
-                    }
-                });
-            },
-            (error) => {
-                console.error('Tracking error:', error);
-                setHasPermission(false);
-                setTrackingError(error.message);
-                stopTracking(shipmentId);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
-        );
-
-        watchIds.current[shipmentId] = watchId;
-        setTrackingShipments(prev => new Set(prev).add(shipmentId));
-    };
-
-    const stopTracking = (shipmentId: string) => {
-        const watchId = watchIds.current[shipmentId];
-        if (watchId !== undefined) {
-            navigator.geolocation.clearWatch(watchId);
-            delete watchIds.current[shipmentId];
-        }
-        setTrackingShipments(prev => {
-            const next = new Set(prev);
-            next.delete(shipmentId);
-            return next;
-        });
-    };
+    // Removed old startTracking/stopTracking functions as tracking is now global on dashboard
 
     if (loading) return <div className="flex justify-center p-12">Loading...</div>;
 
@@ -246,15 +180,7 @@ export default function ActiveShipmentsPage() {
                                             />
 
                                             {/* Location Tracking Panel */}
-                                            <LocationTrackingPanel
-                                                shipmentId={shipment.id}
-                                                isTracking={trackingShipments.has(shipment.id)}
-                                                hasPermission={hasPermission}
-                                                error={trackingError}
-                                                lastUpdate={lastUpdates[shipment.id]}
-                                                onStartTracking={() => startTracking(shipment.id)}
-                                                onStopTracking={() => stopTracking(shipment.id)}
-                                            />
+                                            {/* Location tracking moved to Dashboard */}
                                         </div>
                                     </div>
                                 </div>

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
+import { useSocket } from '@/context/SocketContext';
+import TrackingPermissionModal from '@/components/dashboard/TrackingPermissionModal';
 
 export default function DashboardPage() {
     const t = useTranslations('Auth');
@@ -18,6 +20,16 @@ export default function DashboardPage() {
         growthPercent: '0%'
     });
 
+    // Global Tracking Logic (CARRIER Only)
+    const { socket } = useSocket();
+    const [isOnline, setIsOnline] = useState(false);
+    const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+    const [trackingError, setTrackingError] = useState<string | null>(null);
+    const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+    const watchIdRef = useRef<number | null>(null);
+    const [activeShipments, setActiveShipments] = useState<any[]>([]);
+    const [showPermissionModal, setShowPermissionModal] = useState(false);
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -25,25 +37,125 @@ export default function DashboardPage() {
             return;
         }
 
-        Promise.all([
-            fetchApi('/auth/me'),
-            fetchApi('/shipments/dashboard-stats')
-        ])
-            .then(([userData, statsData]) => {
-                setUser(userData);
-                setStats(statsData);
-            })
-            .catch(() => {
-                localStorage.removeItem('token');
-                router.push('/auth/login');
-            })
-            .finally(() => setLoading(false));
+        const loadData = () => {
+            Promise.all([
+                fetchApi('/auth/me'),
+                fetchApi('/shipments/dashboard-stats'),
+                fetchApi('/shipments/my-shipments').catch(() => [])
+            ])
+                .then(([userData, statsData, shipmentsData]) => {
+                    setUser((prev: any) => JSON.stringify(prev) !== JSON.stringify(userData) ? userData : prev);
+                    setStats(statsData);
+                    if (Array.isArray(shipmentsData)) {
+                        setActiveShipments(shipmentsData.filter((s: any) =>
+                            ['DRIVER_AT_PICKUP', 'LOADING_STARTED', 'LOADING_FINISHED', 'IN_TRANSIT', 'ARRIVED_DELIVERY', 'UNLOADING_FINISHED'].includes(s.status)
+                        ));
+                    }
+                    // Check for Carrier Permission Onboarding
+                    if (userData.role === 'CARRIER') {
+                        const storageKey = `tracking_onboarding_shown_${userData.id}`;
+                        const hasShown = localStorage.getItem(storageKey);
+
+                        if (!hasShown) {
+                            // Always show for new users to explain the feature
+                            setShowPermissionModal(true);
+                        }
+                    }
+                })
+                .catch(() => {
+                    // handles auth errors
+                })
+                .finally(() => setLoading(false));
+        };
+
+        loadData();
+        const interval = setInterval(loadData, 30000); // 30s refresh
+
+        return () => clearInterval(interval);
     }, [router]);
+
+    const toggleOnline = () => {
+        if (isOnline) {
+            // Prevent going offline if there are active shipments
+            if (activeShipments.length > 0) {
+                setTrackingError("Cannot go offline: Active shipments in progress.");
+                setTimeout(() => setTrackingError(null), 5000);
+                return;
+            }
+
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+            setIsOnline(false);
+            setLastUpdate(null);
+        } else {
+            if (!navigator.geolocation) {
+                setTrackingError('Geolocation not supported');
+                return;
+            }
+
+            const id = navigator.geolocation.watchPosition(
+                (position) => {
+                    setHasPermission(true);
+                    setTrackingError(null);
+                    setIsOnline(true);
+
+                    if (activeShipments.length > 0 && socket) {
+                        activeShipments.forEach(shipment => {
+                            socket.emit('location-update', {
+                                shipmentId: shipment.id,
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude,
+                                speed: position.coords.speed,
+                                heading: position.coords.heading,
+                                timestamp: position.timestamp
+                            }, (response: any) => {
+                                if (response?.success) {
+                                    setLastUpdate(new Date());
+                                }
+                            });
+                        });
+                    }
+                },
+                (error) => {
+                    console.error('Tracking Error', error);
+                    setHasPermission(false);
+                    setTrackingError(error.message);
+                    setIsOnline(false);
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+            watchIdRef.current = id;
+        }
+    };
+
+    // Cleanup
+    useEffect(() => {
+        return () => {
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+        };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         router.push('/');
     };
+
+    const handlePermissionGranted = () => {
+        if (user?.id) {
+            localStorage.setItem(`tracking_onboarding_shown_${user.id}`, 'true');
+        }
+    };
+
+    const handleCloseModal = () => {
+        if (user?.id) {
+            localStorage.setItem(`tracking_onboarding_shown_${user.id}`, 'true');
+        }
+        setShowPermissionModal(false);
+    }
 
     if (loading) {
         return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -54,7 +166,13 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+            <TrackingPermissionModal
+                isOpen={showPermissionModal}
+                onClose={handleCloseModal}
+                onPermissionGranted={handlePermissionGranted}
+            />
+
             <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
@@ -69,6 +187,52 @@ export default function DashboardPage() {
                     </button>
                 </div>
             </header>
+
+            {/* Carrier Global Go Online Widget */}
+            {user.role === 'CARRIER' && (
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+                    <div className={`absolute top-0 left-0 w-1 h-full ${isOnline ? 'bg-green-500' : 'bg-gray-200'} transition-colors duration-500`} />
+
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${isOnline ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                                {isOnline ? (
+                                    <div className="relative">
+                                        <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                ) : (
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                )}
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">{isOnline ? 'You are Online' : 'You are Offline'}</h2>
+                                <p className="text-sm text-gray-500 pt-0.5">
+                                    {isOnline
+                                        ? `Visible to Shippers • ${activeShipments.length} Active Jobs`
+                                        : 'Go online to start tracking shipments'
+                                    }
+                                </p>
+                                {lastUpdate && isOnline && (
+                                    <p className="text-[10px] text-green-600 font-mono mt-1 opacity-75">Last Signal: {lastUpdate.toLocaleTimeString()}</p>
+                                )}
+                                {trackingError && (
+                                    <p className="text-[11px] text-red-500 font-medium mt-1 bg-red-50 px-2 py-0.5 rounded">{trackingError}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={toggleOnline}
+                            className={`relative rounded-full px-6 py-3 font-bold text-sm transition-all duration-300 shadow-sm flex items-center gap-2 ${isOnline
+                                ? 'bg-green-500 text-white hover:bg-green-600 ring-4 ring-green-100'
+                                : 'bg-gray-900 text-white hover:bg-gray-800'
+                                }`}
+                        >
+                            {isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Stats Cards */}

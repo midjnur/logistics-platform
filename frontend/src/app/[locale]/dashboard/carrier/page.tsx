@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
+// ... imports
 
 interface Shipment {
     id: string;
@@ -17,10 +17,19 @@ interface Shipment {
     pickup_time?: string;
 }
 
+// ... imports
+// ... (keep existing imports)
 export default function CarrierDashboardPage() {
     const t = useTranslations('Dashboard');
     const [shipments, setShipments] = useState<Shipment[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Global Tracking Logic - REMOVED (Moved to dashboard/page.tsx)
+    // const { socket } = useSocket(); ...
+
+    // Cleanup on unmount - REMOVED
+
+
 
     useEffect(() => {
         const loadShipments = async () => {
@@ -44,18 +53,19 @@ export default function CarrierDashboardPage() {
     }, []);
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm min-h-[130px]">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+            <header className="flex justify-between items-center glass p-6 rounded-3xl shadow-sm min-h-[100px]">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Overview</h1>
-                    <p className="text-gray-500 mt-1">Welcome back, track your progress</p>
+                    <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Overview</h1>
+                    <p className="text-gray-500 text-sm mt-0.5">Welcome back, track your progress</p>
                 </div>
             </header>
 
-
+            {/* Global Go Online Status Widget */}
+            {/* Widget Removed */}
 
             {/* Available Loads Section */}
-            <div className="glass p-8 rounded-3xl shadow-sm min-h-[400px]">
+            <div className="glass p-6 rounded-3xl shadow-sm min-h-[400px]">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
