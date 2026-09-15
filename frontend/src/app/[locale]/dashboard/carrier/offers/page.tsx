@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchApi } from '@/lib/api';
 import { useRouter } from '@/i18n/routing';
+import CounterOfferPanel from '@/components/offers/CounterOfferPanel';
 
 interface Shipment {
     id: string;
@@ -25,25 +26,68 @@ interface Offer {
     created_at: string;
     updated_at: string;
     shipment: Shipment;
+    counter_price?: number;
+    counter_message?: string;
+    countered_by?: 'SHIPPER' | 'CARRIER';
 }
 
 export default function OffersSentPage() {
     const router = useRouter();
     const [offers, setOffers] = useState<Offer[]>([]);
     const [loading, setLoading] = useState(true);
+    const [counteringOfferId, setCounteringOfferId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchApi('/offers/my-offers')
             .then((data: Offer[]) => {
                 // Filter out offers for shipments that are completed or cancelled
                 const activeOffers = data.filter(offer =>
-                    !['DELIVERED', 'CANCELLED'].includes(offer.shipment?.status)
+                    !['DELIVERED', 'CANCELLED', 'ASSIGNED'].includes(offer.shipment?.status)
                 );
                 setOffers(activeOffers);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);
+
+    const handleAccept = async (offerId: string) => {
+        if (!confirm('Accept this price? This will assign you to the shipment.')) return;
+        try {
+            const updated = await fetchApi(`/offers/${offerId}/accept`, { method: 'PATCH' });
+            setOffers(prev => prev.map(o => (o.id === offerId ? { ...o, ...updated } : o)));
+        } catch (err: any) {
+            alert(err.message || 'Failed to accept offer');
+        }
+    };
+
+    const handleReject = async (offerId: string) => {
+        if (!confirm('Reject this counter-offer?')) return;
+        try {
+            const updated = await fetchApi(`/offers/${offerId}/reject`, { method: 'PATCH' });
+            setOffers(prev => prev.map(o => (o.id === offerId ? { ...o, ...updated } : o)));
+        } catch (err: any) {
+            alert(err.message || 'Failed to reject offer');
+        }
+    };
+
+    const handleWithdraw = async (offerId: string) => {
+        if (!confirm('Withdraw this offer? The shipper will no longer see it.')) return;
+        try {
+            const updated = await fetchApi(`/offers/${offerId}/withdraw`, { method: 'PATCH' });
+            setOffers(prev => prev.map(o => (o.id === offerId ? { ...o, ...updated } : o)));
+        } catch (err: any) {
+            alert(err.message || 'Failed to withdraw offer');
+        }
+    };
+
+    const handleCounter = async (offerId: string, price: number, message?: string) => {
+        const updated = await fetchApi(`/offers/${offerId}/counter`, {
+            method: 'PATCH',
+            body: JSON.stringify({ price, message }),
+        });
+        setOffers(prev => prev.map(o => (o.id === offerId ? { ...o, ...updated } : o)));
+        setCounteringOfferId(null);
+    };
 
     if (loading) {
         return (
@@ -88,8 +132,9 @@ export default function OffersSentPage() {
                             <div
                                 key={offer.id}
                                 className={`backdrop-blur-xl p-5 rounded-2xl border transition-all hover:shadow-md group relative overflow-hidden ${offer.status === 'ACCEPTED' ? 'bg-green-50/40 border-green-100' :
-                                    offer.status === 'REJECTED' ? 'bg-gray-50/50 opacity-75 border-gray-100' :
-                                        'bg-white/40 border-white/50'
+                                    offer.status === 'COUNTERED' ? 'bg-amber-50/40 border-amber-100' :
+                                        (offer.status === 'REJECTED' || offer.status === 'WITHDRAWN' || offer.status === 'EXPIRED') ? 'bg-gray-50/50 opacity-75 border-gray-100' :
+                                            'bg-white/40 border-white/50'
                                     }`}
                             >
                                 <div className="flex flex-col md:flex-row justify-between gap-6 relative z-10">
@@ -102,9 +147,17 @@ export default function OffersSentPage() {
                                                     {offer.shipment?.cargo_type || 'General'}
                                                 </span>
                                                 {offer.status === 'PENDING' && <span className="px-3 py-1.5 rounded-xl bg-yellow-50 text-yellow-700 text-sm font-bold border border-yellow-100 uppercase tracking-wider">Pending</span>}
+                                                {offer.status === 'COUNTERED' && <span className="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 text-sm font-bold border border-amber-200 uppercase tracking-wider">{offer.countered_by === 'CARRIER' ? 'Your Counter' : 'Shipper Countered'}</span>}
                                                 {offer.status === 'ACCEPTED' && <span className="px-3 py-1.5 rounded-xl bg-green-100 text-green-700 text-sm font-bold border border-green-200 uppercase tracking-wider">Accepted</span>}
                                                 {offer.status === 'REJECTED' && <span className="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-100 uppercase tracking-wider">Rejected</span>}
+                                                {offer.status === 'WITHDRAWN' && <span className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold border border-gray-200 uppercase tracking-wider">Withdrawn</span>}
+                                                {offer.status === 'EXPIRED' && <span className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 text-sm font-bold border border-gray-200 uppercase tracking-wider">Expired</span>}
                                             </div>
+                                            {offer.status === 'COUNTERED' && offer.counter_message && (
+                                                <div className="bg-amber-50/60 rounded-lg p-3 text-sm text-amber-800 italic border border-amber-100/50 max-w-xl">
+                                                    "{offer.counter_message}"
+                                                </div>
+                                            )}
 
                                             {/* Row 2: Route */}
                                             <div className="flex items-center gap-3 text-sm">
@@ -148,12 +201,59 @@ export default function OffersSentPage() {
                                         </div>
                                     </div>
 
-                                    {/* Right: Your Offer Price */}
-                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[120px]">
+                                    {/* Right: Your Offer Price & Actions */}
+                                    <div className="flex flex-col items-end gap-4 justify-between min-w-[180px]">
                                         <div className="text-right">
-                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Your Price</p>
-                                            <span className="text-3xl font-bold text-gray-900">€{offer.offered_price.toLocaleString()}</span>
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">
+                                                {offer.status === 'COUNTERED' ? (offer.countered_by === 'CARRIER' ? 'Your Counter' : 'Shipper Offers') : 'Your Price'}
+                                            </p>
+                                            {offer.status === 'COUNTERED' ? (
+                                                <span className="text-3xl font-bold text-amber-700">€{(offer.counter_price ?? offer.offered_price).toLocaleString()}</span>
+                                            ) : (
+                                                <span className="text-3xl font-bold text-gray-900">€{offer.offered_price.toLocaleString()}</span>
+                                            )}
                                         </div>
+
+                                        {offer.status === 'PENDING' && (
+                                            <button
+                                                onClick={() => handleWithdraw(offer.id)}
+                                                className="text-xs text-gray-400 font-bold hover:text-red-500 transition-colors"
+                                            >
+                                                Withdraw offer
+                                            </button>
+                                        )}
+
+                                        {offer.status === 'COUNTERED' && offer.countered_by === 'SHIPPER' && (
+                                            <div className="flex flex-col items-end gap-2 w-full">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleReject(offer.id)}
+                                                        className="px-3 py-1.5 rounded-lg text-gray-400 font-bold text-xs hover:bg-red-50 hover:text-red-500 transition-all"
+                                                    >
+                                                        Decline
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setCounteringOfferId(counteringOfferId === offer.id ? null : offer.id)}
+                                                        className="px-3 py-1.5 rounded-lg text-blue-600 font-bold text-xs hover:bg-blue-50 transition-all"
+                                                    >
+                                                        Counter
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAccept(offer.id)}
+                                                        className="bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-xs shadow-sm hover:shadow-md transition-all"
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                </div>
+                                                {counteringOfferId === offer.id && (
+                                                    <CounterOfferPanel
+                                                        initialPrice={offer.counter_price ?? offer.offered_price}
+                                                        onCancel={() => setCounteringOfferId(null)}
+                                                        onSubmit={(price, message) => handleCounter(offer.id, price, message)}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
 
                                         <button
                                             onClick={() => router.push(`/dashboard/carrier/shipments/${offer.shipment_id}`)}

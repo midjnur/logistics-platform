@@ -34,13 +34,27 @@ export class OffersController {
     return this.offersService.findByCarrier(req.user.userId);
   }
 
+  @Patch(':id/counter')
+  async counterOffer(
+    @Param('id') id: string,
+    @Body() body: { price: number; message?: string },
+    @Request() req: { user: any },
+  ) {
+    return this.offersService.counter(id, req.user.userId, body.price, body.message);
+  }
+
   @Patch(':id/accept')
-  async acceptOffer(@Param('id') id: string) {
-    return this.offersService.acceptOffer(id);
+  async acceptOffer(@Param('id') id: string, @Request() req: { user: any }) {
+    return this.offersService.acceptOffer(id, req.user.userId);
   }
 
   @Patch(':id/reject')
-  async rejectOffer(@Param('id') id: string) {
-    return this.offersService.rejectOffer(id);
+  async rejectOffer(@Param('id') id: string, @Request() req: { user: any }) {
+    return this.offersService.rejectOffer(id, req.user.userId);
+  }
+
+  @Patch(':id/withdraw')
+  async withdrawOffer(@Param('id') id: string, @Request() req: { user: any }) {
+    return this.offersService.withdraw(id, req.user.userId);
   }
 }

@@ -12,9 +12,16 @@ import { Carrier } from '../carriers/carrier.entity';
 
 export enum OfferStatus {
   PENDING = 'PENDING',
+  COUNTERED = 'COUNTERED',
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
   WITHDRAWN = 'WITHDRAWN',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum CounterParty {
+  SHIPPER = 'SHIPPER',
+  CARRIER = 'CARRIER',
 }
 
 @Entity('offers')
@@ -48,6 +55,15 @@ export class Offer {
     default: OfferStatus.PENDING,
   })
   status: OfferStatus;
+
+  @Column('decimal', { nullable: true })
+  counter_price: number;
+
+  @Column({ type: 'text', nullable: true })
+  counter_message: string;
+
+  @Column({ type: 'enum', enum: CounterParty, nullable: true })
+  countered_by: CounterParty;
 
   @CreateDateColumn()
   created_at: Date;
