@@ -44,6 +44,7 @@ export default function DashboardLayout({
         { label: 'Overview', href: '/dashboard', icon: 'M4 6h16M4 12h16M4 18h16', roles: ['SHIPPER', 'CARRIER'] },
 
         // Shipper Links
+        { label: 'Verification', href: '/dashboard/shipper/verification', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['SHIPPER'] },
         { label: 'Create Shipment', href: '/dashboard/shipper/create-shipment', icon: 'M12 4v16m8-8H4', roles: ['SHIPPER'] },
         { label: 'My Shipments', href: '/dashboard/shipper/my-shipments', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', roles: ['SHIPPER'] },
 
@@ -259,6 +260,26 @@ export default function DashboardLayout({
                         <LanguageSwitcher variant="light" />
                         <NotificationBell />
                     </div>
+                    {user && !user.email_verified && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-6">
+                            <p className="text-sm text-amber-800 font-medium">
+                                Please confirm your email address ({user.email}).
+                            </p>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await fetchApi('/auth/resend-verification', { method: 'POST' });
+                                        alert('Confirmation email sent.');
+                                    } catch {
+                                        alert('Failed to resend. Please try again shortly.');
+                                    }
+                                }}
+                                className="text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                                Resend Email
+                            </button>
+                        </div>
+                    )}
                     {children}
                 </main>
             </div>

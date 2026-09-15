@@ -19,6 +19,9 @@ const DOCUMENT_TYPES = [
     { value: 'INSURANCE', label: 'Insurance Policy' },
     { value: 'POA', label: 'Power of Attorney' },
     { value: 'CMR', label: 'CMR Blank' },
+    { value: 'ID_CARD', label: 'ID Card' },
+    { value: 'PHOTO', label: 'Photo' },
+    { value: 'COMPANY_REGISTRY', label: 'Company Registry Extract' },
     { value: 'OTHER', label: 'Other' },
 ];
 

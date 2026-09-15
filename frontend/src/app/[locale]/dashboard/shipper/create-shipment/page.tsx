@@ -135,7 +135,14 @@ export default function CreateShipmentPage() {
             router.push('/dashboard');
         } catch (err: any) {
             console.error(err);
-            alert(`Failed to create shipment: ${err?.message || 'Please try again.'}`);
+            const message = err?.message || 'Please try again.';
+            if (message.toLowerCase().includes('verification')) {
+                if (confirm(`${message}\n\nGo to the Verification page now?`)) {
+                    router.push('/dashboard/shipper/verification');
+                }
+            } else {
+                alert(`Failed to create shipment: ${message}`);
+            }
         } finally {
             setLoading(false);
         }
