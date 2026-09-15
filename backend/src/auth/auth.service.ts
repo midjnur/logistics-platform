@@ -3,7 +3,7 @@ import { UserRole } from '../users/user.entity';
 import { CarriersService } from '../carriers/carriers.service';
 import { DocumentsService } from '../documents/documents.service';
 import { DocumentType } from '../documents/document.entity';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -21,6 +21,9 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneWithPassword(email);
     if (user && (await bcrypt.compare(pass, user.password_hash))) {
+      if (!user.is_active) {
+        throw new ForbiddenException('This account has been suspended. Contact support.');
+      }
       const { password_hash, ...result } = user;
       return result;
     }

@@ -68,14 +68,13 @@ export class ShipmentsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: ShipmentStatus },
+    @Request() req: { user: any },
   ) {
-    return this.shipmentsService.updateStatus(id, body.status);
+    return this.shipmentsService.updateStatus(id, body.status, req.user.userId, req.user.role);
   }
 
   @Post(':id/confirm-pickup')
   async confirmPickup(@Param('id') id: string, @Request() req: { user: any }) {
-    // Ideally verify carrier is assigned, but keeping simple for now
-    // Service logic could check `shipment.carrier_id === req.user.userId`
-    return this.shipmentsService.updateStatus(id, ShipmentStatus.IN_TRANSIT);
+    return this.shipmentsService.updateStatus(id, ShipmentStatus.IN_TRANSIT, req.user.userId, req.user.role);
   }
 }

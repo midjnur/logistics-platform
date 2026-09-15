@@ -11,6 +11,9 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CarriersService } from './carriers.service';
 import { VerificationStatus } from './carrier.entity';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { UserRole } from '../users/user.entity';
 
 @Controller('carriers')
 @UseGuards(AuthGuard('jwt'))
@@ -39,24 +42,19 @@ export class CarriersController {
     return this.carriersService.update(carrier.user_id, updateData);
   }
   @Get('admin/pending')
-  async getPendingCarriers(@Request() req: { user: any }) {
-    // TODO: Add proper AdminGuard
-    if (req.user.role !== 'ADMIN') {
-      // For demo simplicity, we might allow this or throw Forbidden
-      // throw new ForbiddenException('Admin only');
-    }
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getPendingCarriers() {
     return this.carriersService.findAllPending();
   }
 
   @Patch('admin/:id/verify')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   async verifyCarrier(
     @Param('id') id: string,
     @Body('status') status: VerificationStatus,
-    @Request() req: { user: any },
   ) {
-    if (req.user.role !== 'ADMIN') {
-      // throw new ForbiddenException('Admin only');
-    }
     return this.carriersService.updateStatus(id, status);
   }
 }

@@ -45,51 +45,64 @@ export default function AdminVerificationsPage() {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
-        <div className="container mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-6">Pending Carrier Verifications</h1>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header>
+                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Pending Verifications</h1>
+                <p className="text-gray-500 mt-1">{carriers.length} carrier{carriers.length === 1 ? '' : 's'} awaiting review</p>
+            </header>
 
             {carriers.length === 0 ? (
-                <div className="text-gray-500">No pending verifications.</div>
+                <div className="glass p-12 rounded-3xl shadow-sm text-center text-gray-400">Nothing pending &mdash; all caught up.</div>
             ) : (
-                <div className="grid gap-6">
+                <div className="grid gap-4">
                     {carriers.map(carrier => (
-                        <div key={carrier.user_id} className="bg-white p-6 rounded shadow border">
-                            <div className="flex justify-between items-start">
+                        <div key={carrier.user_id} className="glass p-6 rounded-3xl shadow-sm">
+                            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                                 <div>
-                                    <h3 className="text-xl font-bold">{carrier.first_name} {carrier.last_name}</h3>
-                                    <p className="text-gray-500 text-sm">ID: {carrier.user_id}</p>
+                                    <h3 className="text-lg font-bold text-gray-900">{carrier.first_name} {carrier.last_name}</h3>
+                                    <p className="text-gray-400 text-xs font-mono mt-0.5">{carrier.user_id}</p>
 
                                     <div className="mt-4">
-                                        <h4 className="font-semibold mb-2">Uploaded Documents:</h4>
+                                        <h4 className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Uploaded Documents</h4>
                                         {carrier.documents && carrier.documents.length > 0 ? (
-                                            <ul className="list-disc list-inside text-sm">
+                                            <div className="flex flex-wrap gap-2">
                                                 {carrier.documents.map((doc: any) => (
-                                                    <li key={doc.id}>
-                                                        <a href={doc.file_url} target="_blank" className="text-blue-600 hover:underline">
-                                                            {doc.type} ({doc.status})
-                                                        </a>
-                                                    </li>
+                                                    <a
+                                                        key={doc.id}
+                                                        href={doc.file_url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        {doc.type} &middot; {doc.status}
+                                                    </a>
                                                 ))}
-                                            </ul>
+                                            </div>
                                         ) : (
-                                            <p className="text-yellow-600 text-sm">No documents uploaded yet.</p>
+                                            <p className="text-amber-600 text-sm">No documents uploaded yet.</p>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 self-start">
                                     <button
                                         onClick={() => handleVerify(carrier.user_id, 'REJECTED')}
-                                        className="bg-red-100 text-red-700 px-4 py-2 rounded hover:bg-red-200"
+                                        className="px-4 py-2 rounded-xl text-red-500 font-bold text-xs hover:bg-red-50 transition-all"
                                     >
                                         Reject
                                     </button>
                                     <button
                                         onClick={() => handleVerify(carrier.user_id, 'VERIFIED')}
-                                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                                        className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition-all"
                                     >
                                         Approve Carrier
                                     </button>
