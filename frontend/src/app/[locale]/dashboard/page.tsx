@@ -90,45 +90,66 @@ export default function DashboardPage() {
             setIsOnline(false);
             setLastUpdate(null);
         } else {
-            if (!navigator.geolocation) {
-                setTrackingError('Geolocation not supported');
-                return;
-            }
-
-            const id = navigator.geolocation.watchPosition(
-                (position) => {
-                    setHasPermission(true);
-                    setTrackingError(null);
-                    setIsOnline(true);
-
-                    if (activeShipments.length > 0 && socket) {
-                        activeShipments.forEach(shipment => {
-                            socket.emit('location-update', {
-                                shipmentId: shipment.id,
-                                latitude: position.coords.latitude,
-                                longitude: position.coords.longitude,
-                                speed: position.coords.speed,
-                                heading: position.coords.heading,
-                                timestamp: position.timestamp
-                            }, (response: any) => {
-                                if (response?.success) {
-                                    setLastUpdate(new Date());
-                                }
-                            });
-                        });
-                    }
-                },
-                (error) => {
-                    console.error('Tracking Error', error);
-                    setHasPermission(false);
-                    setTrackingError(error.message);
-                    setIsOnline(false);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-            watchIdRef.current = id;
+            startTracking();
         }
     };
+
+    const startTracking = () => {
+        if (!navigator.geolocation) {
+            setTrackingError('Geolocation not supported');
+            return;
+        }
+
+        const id = navigator.geolocation.watchPosition(
+            (position) => {
+                setHasPermission(true);
+                setTrackingError(null);
+                setIsOnline(true);
+
+                if (activeShipments.length > 0 && socket) {
+                    activeShipments.forEach(shipment => {
+                        socket.emit('location-update', {
+                            shipmentId: shipment.id,
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            speed: position.coords.speed,
+                            heading: position.coords.heading,
+                            timestamp: position.timestamp
+                        }, (response: any) => {
+                            if (response?.success) {
+                                setLastUpdate(new Date());
+                            }
+                        });
+                    });
+                }
+            },
+            (error) => {
+                console.error('Tracking Error', error);
+                setHasPermission(false);
+                setTrackingError(error.message);
+
+                // If carrier has active shipments, automatically retry after 5 seconds
+                if (activeShipments.length > 0) {
+                    setTimeout(() => {
+                        console.log('Auto-retrying location tracking due to active shipments...');
+                        startTracking();
+                    }, 5000);
+                } else {
+                    setIsOnline(false);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+        );
+        watchIdRef.current = id;
+    };
+
+    // Auto-start tracking if carrier has active shipments
+    useEffect(() => {
+        if (user?.role === 'CARRIER' && activeShipments.length > 0 && !isOnline) {
+            console.log('Auto-starting tracking: Carrier has active shipments');
+            startTracking();
+        }
+    }, [activeShipments.length, user?.role]);
 
     // Cleanup
     useEffect(() => {
@@ -223,12 +244,16 @@ export default function DashboardPage() {
 
                         <button
                             onClick={toggleOnline}
+                            disabled={isOnline && activeShipments.length > 0}
                             className={`relative rounded-full px-6 py-3 font-bold text-sm transition-all duration-300 shadow-sm flex items-center gap-2 ${isOnline
-                                ? 'bg-green-500 text-white hover:bg-green-600 ring-4 ring-green-100'
+                                ? activeShipments.length > 0
+                                    ? 'bg-green-500 text-white ring-4 ring-green-100 cursor-not-allowed opacity-90'
+                                    : 'bg-green-500 text-white hover:bg-green-600 ring-4 ring-green-100'
                                 : 'bg-gray-900 text-white hover:bg-gray-800'
                                 }`}
+                            title={isOnline && activeShipments.length > 0 ? 'Cannot go offline during active shipments' : ''}
                         >
-                            {isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
+                            {isOnline ? (activeShipments.length > 0 ? '🔒 ONLINE (LOCKED)' : 'GO OFFLINE') : 'GO ONLINE'}
                         </button>
                     </div>
                 </div>

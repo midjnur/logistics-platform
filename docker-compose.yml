@@ -48,6 +48,7 @@ services:
     ports:
       - "4000:4000"
     environment:
+      PORT: 4000
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: admin
@@ -78,7 +79,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://172.16.178.144:4000
+      - NEXT_PUBLIC_API_URL=http://172.20.10.8:4000
     volumes:
       - ./frontend:/app
       - /app/node_modules

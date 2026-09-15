@@ -174,7 +174,7 @@ export default function ShipmentDetailsPage() {
                             </div>
 
                             {/* Mini Map */}
-                            <div className="w-full md:w-32 h-32 md:h-auto min-h-[120px] rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group">
+                            <div className="w-full md:w-[400px] h-48 md:h-auto md:min-h-[200px] rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative bg-gray-50 group">
                                 {shipment.distance && (
                                     <div className="absolute top-2 right-2 z-[999] bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-sm border border-white/50 flex items-center gap-1.5">
                                         <div className="text-blue-600">
@@ -221,7 +221,7 @@ export default function ShipmentDetailsPage() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-400 mb-0.5">Volume</p>
-                                    <p className="font-bold text-gray-900">{shipment.cbm || shipment.volume_m3 || '-'} m³</p>
+                                    <p className="font-bold text-gray-900">{shipment.cbm ? `${shipment.cbm} m³` : '- m³'}</p>
                                 </div>
                             </div>
                             {shipment.internal_length && (
@@ -328,7 +328,9 @@ export default function ShipmentDetailsPage() {
                                         <div key={i} className="relative">
                                             <div className="absolute -left-[15px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-white" />
                                             <div>
-                                                <p className="text-sm font-bold text-gray-900">{event.description || event.status}</p>
+                                                <p className="text-sm font-bold text-gray-900">
+                                                    {event.status === 'OFFERED' ? 'Offer Sent to Shipper' : (event.description || event.status)}
+                                                </p>
                                                 <p className="text-xs text-gray-500 mt-0.5">
                                                     {new Date(event.timestamp).toLocaleString(undefined, {
                                                         weekday: 'short',

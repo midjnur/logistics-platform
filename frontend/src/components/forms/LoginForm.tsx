@@ -11,19 +11,27 @@ export default function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
+        console.log('Submitting login form...', { email });
+
         try {
             const data = await fetchApi('/auth/login', {
                 method: 'POST',
                 body: JSON.stringify({ email, password }),
             });
+            console.log('Login success', data);
             localStorage.setItem('token', data.access_token);
             router.push('/dashboard');
         } catch (err: any) {
-            setError(err.message);
+            console.error('Login failed', err);
+            setError(err.message || 'Login failed. Please check console.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -62,9 +70,10 @@ export default function LoginForm() {
 
             <button
                 type="submit"
-                className="bg-white text-blue-600 font-semibold p-3 rounded-lg hover:bg-white/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                disabled={isLoading}
+                className="bg-white text-blue-600 font-semibold p-3 rounded-lg hover:bg-white/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {t('submit')}
+                {isLoading ? 'Logging in...' : t('submit')}
             </button>
 
             <Link href="/auth/register" className="text-white/80 hover:text-white text-sm text-center transition-colors">

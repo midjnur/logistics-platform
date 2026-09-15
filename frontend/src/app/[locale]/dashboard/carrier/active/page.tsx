@@ -91,7 +91,7 @@ export default function ActiveShipmentsPage() {
                         {shipments.map((shipment) => (
                             <div key={shipment.id} className="backdrop-blur-xl p-5 rounded-2xl border transition-all hover:shadow-md group relative overflow-hidden bg-white/40 border-white/50">
                                 {/* Grid Layout to match standard card structure */}
-                                <div className="flex flex-col md:flex-row gap-6 relative z-10">
+                                <div className="flex flex-col xl:flex-row gap-6 relative z-10">
                                     {/* Left: Shipment Context */}
                                     <div className="flex-1 min-w-0">
                                         <div className="space-y-3 mb-2">
@@ -167,9 +167,9 @@ export default function ActiveShipmentsPage() {
                                     </div>
 
                                     {/* Right: Progress Control & Earnings */}
-                                    <div className="w-full md:w-auto flex flex-col md:items-end justify-between gap-6 md:min-w-[280px] md:border-l border-gray-100 md:pl-6 md:border-dashed mt-6 md:mt-0">
-                                        <div className="flex items-center justify-between w-full md:block md:text-right">
-                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1 md:mb-1">Total Earnings</p>
+                                    <div className="w-full xl:w-auto flex flex-col xl:items-end justify-between gap-6 xl:min-w-[280px] xl:border-l border-gray-100 xl:pl-6 xl:border-dashed mt-6 xl:mt-0">
+                                        <div className="flex items-center justify-between w-full xl:block xl:text-right">
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1 xl:mb-1">Total Earnings</p>
                                             <span className="text-3xl font-black text-gray-900 tracking-tight">€{(shipment.price || shipment.offers?.find((o: Offer) => o.status === 'ACCEPTED')?.offered_price || 0).toLocaleString()}</span>
                                         </div>
 

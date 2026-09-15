@@ -26,7 +26,7 @@ export default function MyShipmentsPage() {
 
     useEffect(() => {
         fetchApi('/shipments')
-            .then(data => setShipments(data.filter((s: Shipment) => ['OPEN', 'OFFERED', 'ASSIGNED'].includes(s.status))))
+            .then(data => setShipments(data.filter((s: Shipment) => ['OPEN', 'OFFERED'].includes(s.status))))
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);

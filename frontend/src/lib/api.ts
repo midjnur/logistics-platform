@@ -11,15 +11,22 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
         (headers as any)['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
+    console.log(`[API] Fetching: ${API_URL}${endpoint}`);
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Something went wrong');
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: response.statusText }));
+            console.error('[API] Error:', error);
+            throw new Error(error.message || `Request failed with status ${response.status}`);
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('[API] Network/Fetch Error:', error);
+        throw error;
     }
-
-    return response.json();
 }

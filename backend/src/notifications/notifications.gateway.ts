@@ -10,6 +10,15 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 
+interface CarrierLocation {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    speed?: number;
+    heading?: number;
+    timestamp: number;
+}
+
 @WebSocketGateway({
     cors: {
         origin: '*',
@@ -18,6 +27,9 @@ import { ConfigService } from '@nestjs/config';
 export class NotificationsGateway
     implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() server: Server;
+
+    // In-memory cache for last known carrier locations per shipment
+    private lastKnownLocations: Map<string, CarrierLocation> = new Map();
 
     constructor(
         private jwtService: JwtService,
@@ -67,6 +79,17 @@ export class NotificationsGateway
         const { shipmentId } = payload;
         client.join(`shipment_${shipmentId}`);
         console.log(`Client ${client.id} joined tracking for shipment ${shipmentId}`);
+
+        // Send last known location immediately if available
+        const lastLocation = this.lastKnownLocations.get(shipmentId);
+        if (lastLocation) {
+            client.emit('carrier-location', {
+                shipmentId,
+                ...lastLocation,
+            });
+            console.log(`Sent cached location for shipment ${shipmentId} to new subscriber`);
+        }
+
         return { success: true };
     }
 
@@ -88,6 +111,16 @@ export class NotificationsGateway
         heading?: number;
         timestamp: number;
     }) {
+        // Store the last known location
+        this.lastKnownLocations.set(payload.shipmentId, {
+            latitude: payload.latitude,
+            longitude: payload.longitude,
+            accuracy: payload.accuracy,
+            speed: payload.speed,
+            heading: payload.heading,
+            timestamp: payload.timestamp,
+        });
+
         // TODO: Validate that the client (carrier) owns this shipment
         // For now, broadcast the location to all subscribers of this shipment
         this.server.to(`shipment_${payload.shipmentId}`).emit('carrier-location', {
