@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Notification } from './notification.entity';
 import { User } from '../users/user.entity';
+import { Shipment } from '../shipments/shipment.entity';
 import { NotificationsService } from './notifications.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsController } from './notifications.controller';
@@ -11,7 +12,7 @@ import { NotificationsController } from './notifications.controller';
 @Global()
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Notification, User]),
+        TypeOrmModule.forFeature([Notification, User, Shipment]),
         ConfigModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],

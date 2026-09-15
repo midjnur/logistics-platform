@@ -111,29 +111,23 @@ export class NotificationsGateway
         heading?: number;
         timestamp: number;
     }) {
-        // Store the last known location
-        this.lastKnownLocations.set(payload.shipmentId, {
-            latitude: payload.latitude,
-            longitude: payload.longitude,
-            accuracy: payload.accuracy,
-            speed: payload.speed,
-            heading: payload.heading,
-            timestamp: payload.timestamp,
-        });
-
         // TODO: Validate that the client (carrier) owns this shipment
-        // For now, broadcast the location to all subscribers of this shipment
-        this.server.to(`shipment_${payload.shipmentId}`).emit('carrier-location', {
-            shipmentId: payload.shipmentId,
-            latitude: payload.latitude,
-            longitude: payload.longitude,
-            accuracy: payload.accuracy,
-            speed: payload.speed,
-            heading: payload.heading,
-            timestamp: payload.timestamp,
-        });
-
-        console.log(`Location update for shipment ${payload.shipmentId}:`, payload.latitude, payload.longitude);
+        this.recordAndBroadcastLocation(payload.shipmentId, payload);
         return { success: true };
+    }
+
+    /**
+     * Shared by the WebSocket handler above (web app, foreground) and by
+     * NotificationsController's REST endpoint (mobile background task —
+     * a persistent socket doesn't survive the OS suspending the app, so
+     * background updates arrive as plain HTTP POSTs instead).
+     */
+    recordAndBroadcastLocation(shipmentId: string, location: CarrierLocation) {
+        this.lastKnownLocations.set(shipmentId, location);
+        this.server.to(`shipment_${shipmentId}`).emit('carrier-location', {
+            shipmentId,
+            ...location,
+        });
+        console.log(`Location update for shipment ${shipmentId}:`, location.latitude, location.longitude);
     }
 }
