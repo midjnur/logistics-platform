@@ -107,6 +107,12 @@ export default function CreateShipmentPage() {
                 ...formData,
                 weight_kg: parseFloat(formData.weight_kg) || 0,
                 distance: formData.distance || 0,
+                // RouteStep keeps these as raw local "YYYY-MM-DDTHH:mm" strings
+                // while editing (converting to ISO on every keystroke is what
+                // caused the datetime picker's time segment to reset) — convert
+                // to real ISO timestamps here, once, at actual submission.
+                pickup_time: formData.pickup_time ? new Date(formData.pickup_time).toISOString() : formData.pickup_time,
+                delivery_time: formData.delivery_time ? new Date(formData.delivery_time).toISOString() : formData.delivery_time,
             };
 
             await fetchApi('/shipments', {

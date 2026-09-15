@@ -23,6 +23,17 @@ const geocodeAddress = async (address: string) => {
 
 // Helper removed (OSRM used instead)
 
+// Formats a Date as a LOCAL "YYYY-MM-DDTHH:mm" string — the exact shape
+// <input type="datetime-local"> both expects and returns. Deliberately not
+// using toISOString() here: that converts to UTC, and if the redisplayed
+// value doesn't match what the browser's own widget has (local time), the
+// native picker treats it as external interference and drops the time
+// segment the user just typed rather than reconciling it.
+function toLocalDateTimeInputValue(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function RouteStep({ data, update }: { data: any, update: (d: any) => void }) {
     const t = useTranslations('Shipper');
     const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
@@ -123,9 +134,9 @@ export default function RouteStep({ data, update }: { data: any, update: (d: any
                         </div>
                         <input
                             type="datetime-local"
-                            value={data.pickup_time ? data.pickup_time.slice(0, 16) : ''}
-                            min={new Date(Date.now() + 86400000).toISOString().slice(0, 16)}
-                            onChange={(e) => update({ pickup_time: new Date(e.target.value).toISOString() })}
+                            value={data.pickup_time || ''}
+                            min={toLocalDateTimeInputValue(new Date(Date.now() + 86400000))}
+                            onChange={(e) => update({ pickup_time: e.target.value })}
                             className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 placeholder:text-gray-400"
                         />
                         <p className="text-xs text-gray-400 mt-1.5 ml-1">Must be at least 24 hours from now</p>
@@ -153,18 +164,17 @@ export default function RouteStep({ data, update }: { data: any, update: (d: any
                         <label className="block mb-2 font-medium text-gray-700">Date & Time</label>
                         <input
                             type="datetime-local"
-                            value={data.delivery_time ? data.delivery_time.slice(0, 16) : ''}
-                            min={data.pickup_time ? new Date(new Date(data.pickup_time).getTime() + 3600000).toISOString().slice(0, 16) : ''}
+                            value={data.delivery_time || ''}
+                            min={data.pickup_time ? toLocalDateTimeInputValue(new Date(new Date(data.pickup_time).getTime() + 3600000)) : ''}
                             onChange={(e) => {
-                                // Basic validation: Delivery must be after pickup
-                                const dTime = new Date(e.target.value);
-                                const pTime = data.pickup_time ? new Date(data.pickup_time) : null;
-
-                                if (pTime && dTime <= pTime) {
+                                const newValue = e.target.value;
+                                // Both are "YYYY-MM-DDTHH:mm" local strings, so a plain
+                                // string comparison sorts chronologically correctly.
+                                if (data.pickup_time && newValue <= data.pickup_time) {
                                     alert('Delivery time must be after pickup time');
                                     return;
                                 }
-                                update({ delivery_time: dTime.toISOString() });
+                                update({ delivery_time: newValue });
                             }}
                             className="w-full bg-gray-50/50 border-0 ring-1 ring-gray-200 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={!data.pickup_time}
