@@ -13,6 +13,11 @@ interface Offer {
     offered_price: number;
 }
 
+interface Payment {
+    status: 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED';
+    paid_at?: string;
+}
+
 interface Shipment {
     id: string;
     pickup_address: string;
@@ -27,6 +32,7 @@ interface Shipment {
     delivery_time?: string;
     payment_terms?: string;
     offers?: Offer[];
+    payment?: Payment;
 }
 
 interface ShipmentListProps {
@@ -34,15 +40,25 @@ interface ShipmentListProps {
     title: string;
     description: string;
     emptyMessage: string;
+    shipments?: Shipment[];
+    isLoading?: boolean;
+    hideHeader?: boolean;
 }
 
-export default function ShipmentList({ statusFilter, title, description, emptyMessage }: ShipmentListProps) {
+export default function ShipmentList({ statusFilter, title, description, emptyMessage, shipments: initialShipments, isLoading, hideHeader }: ShipmentListProps) {
     const t = useTranslations('Shipper');
     const router = useRouter();
-    const [shipments, setShipments] = useState<Shipment[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [shipments, setShipments] = useState<Shipment[]>(initialShipments || []);
+    const [loading, setLoading] = useState(isLoading ?? !initialShipments);
 
     useEffect(() => {
+        // If shipments are provided via props, use them (filtering still applies if needed, but usually pre-filtered)
+        if (initialShipments) {
+            setShipments(initialShipments);
+            setLoading(isLoading || false);
+            return;
+        }
+
         fetchApi('/shipments')
             .then((data: Shipment[]) => {
                 if (statusFilter && statusFilter.length > 0) {
@@ -53,7 +69,7 @@ export default function ShipmentList({ statusFilter, title, description, emptyMe
             })
             .catch(console.error)
             .finally(() => setLoading(false));
-    }, [statusFilter]);
+    }, [statusFilter, initialShipments, isLoading]);
 
     if (loading) {
         return (
@@ -66,10 +82,12 @@ export default function ShipmentList({ statusFilter, title, description, emptyMe
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <header className="glass p-6 rounded-3xl shadow-sm">
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{title}</h1>
-                <p className="text-gray-500 mt-1">{description}</p>
-            </header>
+            {!hideHeader && (
+                <header className="glass p-6 rounded-3xl shadow-sm">
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{title}</h1>
+                    <p className="text-gray-500 mt-1">{description}</p>
+                </header>
+            )}
 
             {shipments.length === 0 ? (
                 <div className="glass p-12 rounded-3xl shadow-sm text-center min-h-[400px] flex flex-col items-center justify-center">
@@ -196,11 +214,23 @@ export default function ShipmentList({ statusFilter, title, description, emptyMe
                                             {shipment.status === 'DELIVERED' && (
                                                 <div className="text-right">
                                                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Payment Status</p>
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 text-xs font-bold border border-yellow-100">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
-                                                        Payment Pending
-                                                    </span>
-                                                    {shipment.payment_terms && shipment.delivery_time && (
+                                                    {shipment.payment?.status === 'PAID' ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                            Paid
+                                                        </span>
+                                                    ) : shipment.payment?.status === 'PROCESSING' ? (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                                            Processing
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 text-xs font-bold border border-yellow-100">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                                                            Payment Pending
+                                                        </span>
+                                                    )}
+                                                    {shipment.payment?.status !== 'PAID' && shipment.payment_terms && shipment.delivery_time && (
                                                         <p className="text-[10px] text-gray-400 mt-1 font-medium" suppressHydrationWarning>
                                                             Due: {(() => {
                                                                 const deliveryDate = new Date(shipment.delivery_time);

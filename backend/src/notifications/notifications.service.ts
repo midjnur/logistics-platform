@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from './notification.entity';
 import { NotificationsGateway } from './notifications.gateway';
 import { User, UserRole } from '../users/user.entity';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class NotificationsService {
@@ -13,6 +14,7 @@ export class NotificationsService {
         @InjectRepository(User)
         private usersRepository: Repository<User>,
         private notificationsGateway: NotificationsGateway,
+        private mailService: MailService,
     ) { }
 
     async create(userId: string, title: string, message: string, type?: string, metadata?: any) {
@@ -28,6 +30,22 @@ export class NotificationsService {
 
         // Emit real-time event
         this.notificationsGateway.sendToUser(userId, 'notification', saved);
+
+        // Best-effort email — never let a mail failure break the calling flow
+        this.usersRepository
+            .findOne({ where: { id: userId } })
+            .then((user) => {
+                if (!user?.email) return;
+                const ctaUrl = process.env.FRONTEND_URL
+                    ? `${process.env.FRONTEND_URL}/en/dashboard`
+                    : undefined;
+                return this.mailService.send(
+                    user.email,
+                    title,
+                    this.mailService.renderNotificationEmail(title, message, ctaUrl ? 'Open Dashboard' : undefined, ctaUrl),
+                );
+            })
+            .catch((err) => console.error('Notification email failed:', err));
 
         return saved;
     }

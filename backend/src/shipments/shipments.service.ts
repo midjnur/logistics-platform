@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Shipment, ShipmentStatus } from './shipment.entity';
+import { Payment, PaymentStatus } from '../payments/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -9,6 +10,8 @@ export class ShipmentsService {
   constructor(
     @InjectRepository(Shipment)
     private shipmentsRepository: Repository<Shipment>,
+    @InjectRepository(Payment)
+    private paymentsRepository: Repository<Payment>,
     private notificationsService: NotificationsService,
   ) { }
 
@@ -47,6 +50,7 @@ export class ShipmentsService {
     if (shipperId) {
       query.andWhere('shipment.shipper_id = :shipperId', { shipperId });
       query.leftJoinAndSelect('shipment.offers', 'offers');
+      query.leftJoinAndSelect('shipment.payment', 'payment');
     }
 
     if (excludeCarrierId) {
@@ -82,16 +86,22 @@ export class ShipmentsService {
   async findOne(id: string): Promise<Shipment | null> {
     return this.shipmentsRepository.findOne({
       where: { id },
-      relations: ['documents'],
+      relations: ['documents', 'payment'],
     });
   }
 
   async updateStatus(
     id: string,
     status: ShipmentStatus,
+    actorId?: string,
+    actorRole?: string,
   ): Promise<Shipment | null> {
     const shipment = await this.findOne(id);
-    if (!shipment) return null;
+    if (!shipment) throw new NotFoundException('Shipment not found');
+
+    if (actorRole !== 'ADMIN' && actorId && shipment.carrier_id !== actorId) {
+      throw new ForbiddenException('Only the assigned carrier can update this shipment\'s status');
+    }
 
     const updateData: Partial<Shipment> = { status };
 
@@ -184,12 +194,12 @@ export class ShipmentsService {
         ],
       });
 
-      // Earnings (Sum of price for delivered shipments)
-      const earningsResult = await this.shipmentsRepository
-        .createQueryBuilder('shipment')
-        .select('SUM(shipment.price)', 'sum')
-        .where('shipment.carrier_id = :userId', { userId })
-        .andWhere('shipment.status = :status', { status: ShipmentStatus.DELIVERED })
+      // Earnings actually received (paid out via Stripe), not just delivered shipment value
+      const earningsResult = await this.paymentsRepository
+        .createQueryBuilder('payment')
+        .select('SUM(payment.amount)', 'sum')
+        .where('payment.carrier_id = :userId', { userId })
+        .andWhere('payment.status = :status', { status: PaymentStatus.PAID })
         .getRawOne();
 
       earnings = parseFloat(earningsResult.sum || '0');

@@ -1,22 +1,35 @@
 import { NestFactory } from '@nestjs/core';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Body parsing is set up manually below so the Stripe webhook route can get
+  // the raw request bytes (required for signature verification) while every
+  // other route keeps the usual JSON body parsing.
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://172.16.178.144:3000',
-      'http://172.16.178.144:3001',
-      'http://172.16.178.119:3000'
-    ],
+    origin: true, // Allow all origins temporarily for debugging
     credentials: true,
   });
+
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.originalUrl === '/payments/webhook') {
+      express.raw({ type: 'application/json' })(req, res, next);
+    } else {
+      express.json()(req, res, next);
+    }
+  });
+  app.use(express.urlencoded({ extended: true }));
+
   app.use((req: any, res: any, next: any) => {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     next();
   });
-  await app.listen(process.env.PORT ?? 4000, '0.0.0.0');
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`✅ Backend is listening on http://0.0.0.0:${port}`);
 }
-bootstrap();
+bootstrap().catch(err => {
+  console.error('❌ Failed to start backend:', err);
+  process.exit(1);
+});

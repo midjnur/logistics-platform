@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { fetchApi } from '@/lib/api';
+import CarrierRatingBadge from '@/components/reviews/CarrierRatingBadge';
+import CarrierEarningsBadge from '@/components/payments/CarrierEarningsBadge';
 // ... imports
 
 interface Shipment {
@@ -23,6 +25,7 @@ export default function CarrierDashboardPage() {
     const t = useTranslations('Dashboard');
     const [shipments, setShipments] = useState<Shipment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [carrierId, setCarrierId] = useState<string | null>(null);
 
     // Global Tracking Logic - REMOVED (Moved to dashboard/page.tsx)
     // const { socket } = useSocket(); ...
@@ -35,8 +38,8 @@ export default function CarrierDashboardPage() {
         const loadShipments = async () => {
             try {
                 const data = await fetchApi('/shipments');
-                // Filter for OPEN shipments if status logic exists, otherwise show all
-                setShipments(data);
+                // Filter for OPEN shipments for "Find Shipments" logic
+                setShipments(data.filter((s: Shipment) => s.status === 'OPEN'));
             } catch (error) {
                 console.error('Failed to load shipments', error);
             } finally {
@@ -49,6 +52,10 @@ export default function CarrierDashboardPage() {
         // Auto-refresh every 60 seconds
         const interval = setInterval(loadShipments, 60000);
 
+        fetchApi('/auth/me')
+            .then((me) => setCarrierId(me.id))
+            .catch(() => setCarrierId(null));
+
         return () => clearInterval(interval);
     }, []);
 
@@ -58,6 +65,10 @@ export default function CarrierDashboardPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Overview</h1>
                     <p className="text-gray-500 text-sm mt-0.5">Welcome back, track your progress</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <CarrierEarningsBadge />
+                    {carrierId && <CarrierRatingBadge carrierId={carrierId} />}
                 </div>
             </header>
 

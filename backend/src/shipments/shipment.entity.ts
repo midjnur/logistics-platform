@@ -6,11 +6,13 @@ import {
   JoinColumn,
   CreateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Carrier } from '../carriers/carrier.entity';
 import { Document } from '../documents/document.entity';
 import { Offer } from '../offers/offer.entity';
+import { Payment } from '../payments/payment.entity';
 
 export enum ShipmentStatus {
   OPEN = 'OPEN',
@@ -148,6 +150,9 @@ export class Shipment {
 
   @OneToMany(() => Offer, (offer) => offer.shipment)
   offers: Offer[];
+
+  @OneToOne(() => Payment, (payment) => payment.shipment)
+  payment: Payment;
 
   @Column({ type: 'jsonb', default: [] })
   timeline: { status: string; timestamp: string; description?: string }[];
