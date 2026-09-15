@@ -77,7 +77,7 @@ Re-audited 2026-09-14 against the actual code in this workspace (entities, contr
 
 ## ❌ CONFIRMED STILL MISSING
 
-### 1. Payment System — BUILT 2026-09-15, needs live API keys to actually run
+### 1. Payment System — DONE, checkout confirmed live 2026-09-15, webhook completion pending on the user
 **Scope decision (made with the user):** simple collection flow, not a Stripe Connect marketplace — the shipper pays into the platform's own Stripe account via a hosted Checkout Session; carrier payout is tracked in the app but the actual transfer to the carrier happens outside Stripe for now. Charged **after delivery**, against the existing `payment_terms`-derived due date (matches the "Payment Pending / due in N days" UI that already existed on shipment cards).
 
 **Built:**
@@ -90,9 +90,10 @@ Re-audited 2026-09-14 against the actual code in this workspace (entities, contr
 - [x] `ShipmentList.tsx`'s "Payment Pending" badge now reflects real payment status instead of always showing pending
 - [x] Verified end-to-end via curl against the running backend: authorization ordering fixed after first test caught it short-circuiting on "Stripe not configured" before checking ownership/status (now validates business rules first, Stripe second); due-date calculation confirmed to exactly match the frontend's existing logic
 
-**Not done / needs you:**
-- No `STRIPE_SECRET_KEY` or `STRIPE_WEBHOOK_SECRET` configured yet — every endpoint is wired but returns a clear "not configured" error until real test keys are added to `backend/.env`
-- Carrier payout is manual/tracked-only, not automated (by design, per the simple-flow decision above) — revisit if/when a Connect marketplace is wanted
+**Live keys added 2026-09-15:** real `sk_test_...` and `whsec_...` (via Stripe CLI `stripe listen`) are in `backend/.env`. A real Checkout Session was created against the live Stripe test API (`checkout.stripe.com/c/pay/cs_test_...`, not a mock) for an actual delivered test shipment at the negotiated price. The user has the checkout link but hasn't completed the test card payment yet, so the webhook → `PAID` → email-confirmation path is built and wired but not yet observed end-to-end. Pick this back up whenever convenient — not blocking anything else.
+
+**Still by design, not a gap:**
+- Carrier payout is manual/tracked-only, not automated (the simple-flow decision made with the user) — revisit if/when a Connect marketplace is wanted
 - No refund flow
 
 ---
@@ -128,41 +129,49 @@ Scoped from a generic marketplace-admin recommendation list down to what this ap
 
 ---
 
-### 4. Email Notifications — BUILT 2026-09-15, needs a live API key
-**Built:** `MailService` (Resend) wired directly into `NotificationsService.create()` — every existing in-app/WebSocket notification (offer received/accepted/rejected/countered/withdrawn, review received, payment confirmed/received, shipment status change) now also fires a best-effort email to the recipient's address, in a small branded HTML template with a link back to the dashboard. Fire-and-forget: an email failure is logged and never breaks the underlying action (accepting an offer, leaving a review, etc. all still succeed even if the mail API is down).
+### 4. Email Notifications — DONE, live key confirmed 2026-09-15
+`MailService` (Resend) wired directly into `NotificationsService.create()` — every existing in-app/WebSocket notification (offer received/accepted/rejected/countered/withdrawn, review received, payment confirmed/received, shipment status change) also fires a best-effort email, in a small branded HTML template with a link back to the dashboard. Fire-and-forget: an email failure is logged and never breaks the underlying action.
 
-**Not done / needs you:** no `RESEND_API_KEY` configured yet — without it, emails are logged instead of sent (confirmed via a clean warning at startup, not a crash). No SMS (was always marked optional).
+Live `RESEND_API_KEY` added and confirmed working — a real send reached Resend's API and the sandbox rejection message itself confirmed the account's verified address. No SMS (was always marked optional, not built).
 
 ---
 
-### 5. Mobile Carrier App — Not Started
-- `mobile/carrier` Expo project exists but is empty (no screens, no API client, no GPS broadcasting). This is required for reliable background location tracking of drivers, which browser-based `watchPosition` cannot provide once the phone screen locks.
+### 5. Mobile Carrier App — BUILT 2026-09-15
+Was an empty scaffold; now a working Expo app with a scope decision made with the user: true background GPS tracking (not just foreground), plus a business rule — once a carrier goes online and picks up a shipment, they're locked online (can't go offline) until it's marked `DELIVERED`.
+
+**Built:**
+- [x] Same foundation as `mobile/shipper` (`AuthContext`, `expo-secure-store` token, NativeWind) — plus fixed 3 config files (`babel.config.js`, `metro.config.js`, `global.css`) that were missing from the original scaffold, meaning NativeWind styling was never actually wired up before now
+- [x] Login, Dashboard (Go Online/Offline + available jobs list), Job Details (submit an offer), Active Shipment (status progression through the same 8-step flow as the web app)
+- [x] `TrackingContext`: online/offline state persisted across restarts, polls `/shipments/my-shipments` for an active (non-terminal) shipment, and disables "Go Offline" whenever one exists
+- [x] True background location via `expo-location` + `expo-task-manager` — the task is defined at module scope (required so the OS can invoke it while the app is backgrounded) and reads the active shipment ID from `SecureStore` rather than React state, since backgrounded JS has no component tree
+- [x] **New backend endpoint** `POST /notifications/location/:shipmentId` — background updates arrive as plain HTTP POSTs, not over the existing WebSocket, because a persistent socket doesn't reliably survive the OS suspending the app. Validated: only the assigned carrier may post to a given shipment (fixed a pre-existing `TODO` — the WebSocket path had never validated this). Reuses the same broadcast-and-cache logic as the web app's live socket path, so shippers see mobile-sourced updates identically.
+- [x] `app.json` configured with the iOS/Android permission strings and background modes background location requires
+- [x] Also fixed: `mobile/shipper`'s API client was still pointed at a dead tunnel URL from an earlier session — that app couldn't reach the backend at all until this fix
+
+**Verified without a physical device (the honest limit of what's checkable from here):**
+- Full TypeScript compile, clean
+- Metro bundler actually built the app for both iOS and Android targets (1,427 / 1,429 modules, zero errors) — catches real bundling/config problems `tsc` alone wouldn't
+- `expo config` confirms the location plugin and all permission strings resolve correctly into the native config
+
+**Cannot be verified from here — needs the user's phone:** actual background execution behavior, the real iOS/Android permission prompts, whether location keeps flowing with the screen locked, and battery impact. Also: background location doesn't work in plain Expo Go (Expo removed that support) — testing this specific feature requires a development build (`npx expo run:ios` / `run:android`, or an EAS build), not just scanning a QR code.
 
 ---
 
 ## Items from the original doc now fully resolved (no action needed)
-Carrier registration & documents · Vehicle management (volume/dims/refrigerated/ADR/features/docs/multi-vehicle) · Shipment creation fields (dims, times, geocoding) · Carrier status updates & shipment doc upload · Real-time tracking (WebSocket, GPS, live map) · Geocoding & maps (Nominatim + Leaflet) · Offers/bidding, counter-offers & expiration · Reviews & ratings · Notifications (in-app/WebSocket) · Admin verification interface.
+Carrier registration & documents · Vehicle management (volume/dims/refrigerated/ADR/features/docs/multi-vehicle) · Shipment creation fields (dims, times, geocoding) · Carrier status updates & shipment doc upload · Real-time tracking (WebSocket, GPS, live map) · Geocoding & maps (Nominatim + Leaflet) · Offers/bidding, counter-offers & expiration · Reviews & ratings · Notifications (in-app/WebSocket) · Admin dashboard (stats, users, shipments, verifications, broadcast) · Payments (Stripe checkout) · Email (Resend) · Mobile carrier app (background tracking).
 
 ---
 
-## 📊 PRIORITY RECOMMENDATIONS (revised, reflects real remaining work only)
+## 📊 PRIORITY RECOMMENDATIONS
 
-### Phase 1: Trust & Close-the-Loop — ✅ DONE (2026-09-14)
-1. ~~Reviews & Ratings~~ — done.
-2. ~~Offers: counter-offer + expiration~~ — done.
-3. ~~GE/RU translations~~ — infrastructure and existing-namespace coverage done; turned out to include fixing a live crash bug and a missing language switcher, not just adding two JSON files. Real product-wide localization (30+ hardcoded-English components) remains, see item 2 above under Confirmed Still Missing.
+### Everything originally scoped is done (2026-09-15)
+Reviews & ratings, offer negotiation, admin dashboard, Stripe payments, Resend email, and the mobile carrier app (background tracking) all shipped this pass — see above for what's built vs. what only the user's own testing can confirm (the Stripe webhook completion, on-device background location behavior).
 
-### Phase 2: Admin & Operations — next up
-4. **Admin dashboard** — platform stats, user list with suspend/reactivate, extend the existing `/admin/verifications` pattern.
-5. **Email notifications** — mailer integration (e.g. nodemailer + a transactional provider) for offer received / status change / document rejected events, alongside the existing in-app/WebSocket ones.
-
-### Phase 3: Money (needs a provider decision before starting)
-6. **Payment system** — schema, checkout flow for shippers, payout flow for carriers, earnings dashboard. Requires choosing a processor (Stripe is the natural default) and deciding sandbox vs. live scope before any code is written.
-
-### Phase 4: Mobile Carrier App
-7. **`mobile/carrier`** — build out the Expo app so drivers can log in, see assigned jobs, update status, and broadcast background GPS location (the web `watchPosition` approach stops once the phone screen locks, so this is the real fix for reliable live tracking in the field).
+### What's actually left
+1. **Deep i18n** — 30+ components (shipment wizard, offers, tracking, reviews, admin) are still hardcoded English. Deliberately deferred until the rest of the app is feature-complete, per the user's call on 2026-09-15 ("let's translate everything at once at the end").
+2. **On-device verification** — the user completing the Stripe test payment, and testing the carrier app's background GPS on a real phone via a dev-client build (not Expo Go).
 
 ### Not started, out of current scope unless requested
-AI services (price estimation, carrier matching, route optimization) and analytics/forecasting — the original doc's Phase 3. These still make sense only after the data above (reviews/performance history, real payment/earnings history) exists to train or filter on.
+AI services (price estimation, carrier matching, route optimization) and analytics/forecasting — the original doc's Phase 3. These still make sense only after enough real performance/earnings history exists to train or filter on. Also not requested: Stripe Connect payouts, refunds, SMS notifications, dispute resolution tooling.
 
 ---
