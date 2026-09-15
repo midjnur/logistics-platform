@@ -11,6 +11,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ShipmentsService } from './shipments.service';
 import { ShipmentStatus } from './shipment.entity';
+import { CreateShipmentDto } from './dto/create-shipment.dto';
 
 @Controller('shipments')
 @UseGuards(AuthGuard('jwt'))
@@ -18,9 +19,14 @@ export class ShipmentsController {
   constructor(private shipmentsService: ShipmentsService) { }
 
   @Post()
-  async create(@Body() createDto: any, @Request() req: { user: any }) {
+  async create(@Body() createDto: CreateShipmentDto, @Request() req: { user: any }) {
     return this.shipmentsService.create({
       ...createDto,
+      // Already validated as well-formed ISO 8601 by CreateShipmentDto, so
+      // this Date construction can't produce an Invalid Date the way the
+      // unvalidated `any` body used to.
+      pickup_time: createDto.pickup_time ? new Date(createDto.pickup_time) : undefined,
+      delivery_time: createDto.delivery_time ? new Date(createDto.delivery_time) : undefined,
       shipper_id: req.user.userId,
     });
   }

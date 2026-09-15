@@ -100,19 +100,31 @@ export default function CreateShipmentPage() {
     };
 
     const handleSubmit = async () => {
+        // RouteStep keeps these as raw local "YYYY-MM-DDTHH:mm" strings while
+        // editing (converting to ISO on every keystroke is what caused the
+        // datetime picker's time segment to reset) — parse to real Date
+        // objects here, once, at actual submission, and refuse to send
+        // anything that didn't parse rather than silently posting garbage.
+        const pickupDate = formData.pickup_time ? new Date(formData.pickup_time) : null;
+        const deliveryDate = formData.delivery_time ? new Date(formData.delivery_time) : null;
+
+        if (formData.pickup_time && (!pickupDate || isNaN(pickupDate.getTime()))) {
+            alert('Pickup date/time looks invalid — please re-select it on the Journey step.');
+            return;
+        }
+        if (formData.delivery_time && (!deliveryDate || isNaN(deliveryDate.getTime()))) {
+            alert('Delivery date/time looks invalid — please re-select it on the Journey step.');
+            return;
+        }
+
         setLoading(true);
         try {
-            // Transform data for API if needed
             const payload = {
                 ...formData,
                 weight_kg: parseFloat(formData.weight_kg) || 0,
                 distance: formData.distance || 0,
-                // RouteStep keeps these as raw local "YYYY-MM-DDTHH:mm" strings
-                // while editing (converting to ISO on every keystroke is what
-                // caused the datetime picker's time segment to reset) — convert
-                // to real ISO timestamps here, once, at actual submission.
-                pickup_time: formData.pickup_time ? new Date(formData.pickup_time).toISOString() : formData.pickup_time,
-                delivery_time: formData.delivery_time ? new Date(formData.delivery_time).toISOString() : formData.delivery_time,
+                pickup_time: pickupDate ? pickupDate.toISOString() : formData.pickup_time,
+                delivery_time: deliveryDate ? deliveryDate.toISOString() : formData.delivery_time,
             };
 
             await fetchApi('/shipments', {
@@ -121,9 +133,9 @@ export default function CreateShipmentPage() {
             });
 
             router.push('/dashboard');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert('Failed to create shipment');
+            alert(`Failed to create shipment: ${err?.message || 'Please try again.'}`);
         } finally {
             setLoading(false);
         }
