@@ -25,8 +25,17 @@ export class UsersService {
   async findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { id },
-      relations: ['carrier'],
+      relations: ['carrier', 'shipper'],
     });
+  }
+
+  async findByVerificationToken(token: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { email_verification_token: token } });
+  }
+
+  async update(id: string, data: Partial<User>): Promise<User | null> {
+    await this.usersRepository.update(id, data);
+    return this.findById(id);
   }
 
   async create(userData: Partial<User>): Promise<User> {

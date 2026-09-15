@@ -30,11 +30,16 @@ export class CarriersService {
     await this.carriersRepository.update({ user_id: userId }, updateData);
     return this.findOne(userId);
   }
-  async findAllPending(): Promise<Carrier[]> {
-    return this.carriersRepository.find({
+  async findAllPending(): Promise<any[]> {
+    // Document.owner now points at User (not Carrier — that's what let
+    // shippers own documents too), so documents come in via user.documents;
+    // flattened back onto `documents` here so the admin UI didn't need to
+    // change how it reads this response.
+    const carriers = await this.carriersRepository.find({
       where: { verification_status: VerificationStatus.PENDING },
-      relations: ['user', 'documents'],
+      relations: ['user', 'user.documents'],
     });
+    return carriers.map((c) => ({ ...c, documents: c.user?.documents || [] }));
   }
 
   async updateStatus(

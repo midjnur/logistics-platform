@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Vehicle } from '../vehicles/vehicle.entity';
-import { Document } from '../documents/document.entity';
 
 export enum VerificationStatus {
   PENDING = 'PENDING',
@@ -103,7 +102,4 @@ export class Carrier {
 
   @OneToMany(() => Vehicle, (vehicle) => vehicle.carrier)
   vehicles: Vehicle[];
-
-  @OneToMany(() => Document, (document) => document.owner)
-  documents: Document[];
 }

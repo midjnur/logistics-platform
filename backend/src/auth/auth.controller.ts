@@ -5,6 +5,7 @@ import {
   UseGuards,
   Body,
   Get,
+  Query,
   UseInterceptors,
   UploadedFiles,
   UnauthorizedException,
@@ -53,5 +54,16 @@ export class AuthController {
     // Fetch full user details including carrier profile
     const user = await this.authService.getUserById(req.user.userId);
     return user;
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('resend-verification')
+  async resendVerification(@Request() req: { user: any }) {
+    return this.authService.resendVerificationEmail(req.user.userId);
   }
 }

@@ -1,9 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Shipment, ShipmentStatus } from './shipment.entity';
 import { Payment, PaymentStatus } from '../payments/payment.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ShippersService } from '../shippers/shippers.service';
+import { ShipperVerificationStatus } from '../shippers/shipper.entity';
 
 @Injectable()
 export class ShipmentsService {
@@ -13,9 +15,27 @@ export class ShipmentsService {
     @InjectRepository(Payment)
     private paymentsRepository: Repository<Payment>,
     private notificationsService: NotificationsService,
+    private shippersService: ShippersService,
   ) { }
 
   async create(shipmentData: Partial<Shipment>): Promise<Shipment> {
+    const shipperId = shipmentData.shipper_id;
+    if (shipperId) {
+      const shipperProfile = await this.shippersService.findByUserId(shipperId);
+      if (!shipperProfile) {
+        throw new BadRequestException(
+          'Complete your shipper verification before creating shipments.',
+        );
+      }
+      if (shipperProfile.verification_status !== ShipperVerificationStatus.VERIFIED) {
+        throw new ForbiddenException(
+          shipperProfile.verification_status === ShipperVerificationStatus.REJECTED
+            ? 'Your shipper verification was rejected. Please update and resubmit your details.'
+            : 'Your shipper verification is still pending admin approval.',
+        );
+      }
+    }
+
     const shipment = this.shipmentsRepository.create({
       ...shipmentData,
       timeline: [

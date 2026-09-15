@@ -25,6 +25,8 @@ import { MailModule } from './mail/mail.module';
 import { Payment } from './payments/payment.entity';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { Shipper } from './shippers/shipper.entity';
+import { ShippersModule } from './shippers/shippers.module';
 
 @Module({
   imports: [
@@ -41,7 +43,7 @@ import { AdminModule } from './admin/admin.module';
           password: process.env.POSTGRES_PASSWORD,
           database: process.env.POSTGRES_DB,
         }),
-      entities: [User, Carrier, Vehicle, Shipment, Document, Offer, Notification, Review, Payment],
+      entities: [User, Carrier, Shipper, Vehicle, Shipment, Document, Offer, Notification, Review, Payment],
       synchronize: true, // Set to false in production
       ssl: (process.env.POSTGRES_HOST?.includes('supabase') || process.env.DATABASE_URL?.includes('supabase'))
         ? { rejectUnauthorized: false }
@@ -59,6 +61,7 @@ import { AdminModule } from './admin/admin.module';
     MailModule,
     PaymentsModule,
     AdminModule,
+    ShippersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

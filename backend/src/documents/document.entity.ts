@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Carrier } from '../carriers/carrier.entity';
+import { User } from '../users/user.entity';
 import { Shipment } from '../shipments/shipment.entity';
 
 export enum DocumentType {
@@ -18,6 +18,9 @@ export enum DocumentType {
   PACKING_LIST = 'PACKING_LIST',
   EXPORT_DECLARATION = 'EXPORT_DECLARATION',
   CERTIFICATE_OF_ORIGIN = 'CERTIFICATE_OF_ORIGIN',
+  ID_CARD = 'ID_CARD',
+  PHOTO = 'PHOTO',
+  COMPANY_REGISTRY = 'COMPANY_REGISTRY',
   OTHER = 'OTHER',
 }
 
@@ -35,9 +38,12 @@ export class Document {
   @Column()
   owner_id: string;
 
-  @ManyToOne(() => Carrier, (carrier) => carrier.documents)
+  // Owner is any User (shipper or carrier) — was Carrier-only, which is
+  // exactly why shipper document uploads used to fail with a foreign-key
+  // violation: shippers have no row in the carriers table at all.
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'owner_id' })
-  owner: Carrier;
+  owner: User;
 
   @Column({ nullable: true })
   shipment_id: string;
