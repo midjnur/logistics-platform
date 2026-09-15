@@ -1,7 +1,7 @@
 # Gap Analysis - Implementation vs Requirements
 
 ## Summary
-Review of what we've implemented versus the original project requirements and specifications.
+Re-audited 2026-09-14 against the actual code in this workspace (entities, controllers, and frontend pages read directly, not inferred). The previous version of this document was written early in the project and is significantly out of date — most "missing" items below were built in the three commits since. This revision reflects ground truth and supersedes it.
 
 ---
 
@@ -12,7 +12,7 @@ Review of what we've implemented versus the original project requirements and sp
 - [x] Nest.js backend with TypeORM
 - [x] PostgreSQL database
 - [x] Docker setup (PostgreSQL, Redis, MinIO)
-- [x] Multi-language i18n (EN/DE configured, GE/RU structure ready)
+- [x] i18n structure (EN, DE complete — see #11, GE/RU still missing)
 
 ### Authentication & Users
 - [x] User registration (email, phone, password, role)
@@ -20,247 +20,149 @@ Review of what we've implemented versus the original project requirements and sp
 - [x] Protected routes
 - [x] User roles (SHIPPER, CARRIER, ADMIN)
 
-### Shipper Module (Basic)
-- [x] Create shipment (pickup, delivery, cargo type, weight)
-- [x] View my shipments list
-- [x] Shipment status tracking (OPEN, OFFERED, IN_TRANSIT, DELIVERED)
+### Carrier Registration & Documents — DONE (doc previously said missing)
+- [x] Dedicated `/carrier-registration` wizard, separate from shipper signup
+- [x] `Carrier` entity captures: bank name/code/account/currency, structured address (line1/2, city, state, postal, country), languages[], passport number + issue date, driver license number, ID card number, company name, tax ID
+- [x] `verification_status` (PENDING/VERIFIED/REJECTED) on the carrier
+- [x] `Document` entity + `/documents/upload` (multipart → MinIO) covering PASSPORT, LICENSE, INSURANCE, POA, CMR, INVOICE, PACKING_LIST, EXPORT_DECLARATION, CERTIFICATE_OF_ORIGIN, OTHER, each with its own PENDING/VERIFIED/REJECTED status + expiry date
+- [x] Admin verification queue at `/admin/verifications`
 
-### Carrier Module (Basic)
-- [x] Browse available jobs (OPEN shipments)
-- [x] Accept jobs (updates status to OFFERED)
-- [x] Add vehicles (type, plate, capacity)
-- [x] View my vehicles list
+### Vehicle Management — DONE (doc previously said basic only)
+- [x] `Vehicle` entity: type, plate, capacity_kg, volume_m3, length/width/height, `is_refrigerated`, `adr_class`, `features` (curtain/liftgate/etc. as jsonb), VIN, make/model/year, TIR/CMR/waybill flags, loading type, emission class, trailer sub-fields, photos[], insurance/POA/ID doc URLs
+- [x] Multiple vehicles per carrier (`VehicleRegistrationWizard.tsx`, `my-vehicles` page)
+
+### Shipment Creation — DONE (doc previously said basic form, hardcoded times)
+- [x] Multi-step wizard (`RouteStep`, `CargoStep`, `DetailsStep`, `RequirementsStep`)
+- [x] Nominatim geocoding for pickup/delivery address → lat/lng (`RouteStep.tsx`)
+- [x] `datetime-local` pickers for pickup/delivery time, with delivery-after-pickup validation
+- [x] Dimensions (internal L/W/H), CBM, temperature control, HS code, loading type, TIR/CMR/waybill/export-declaration requirements, shipper/consignee JSON, value of goods + currency, payment terms
+
+### Carrier Workflow — DONE (doc previously said admin-only status updates)
+- [x] `ShipmentProgressControl.tsx` lets the assigned carrier drive the status machine forward: OPEN → ASSIGNED → DRIVER_AT_PICKUP → LOADING_STARTED → LOADING_FINISHED → IN_TRANSIT → ARRIVED_DELIVERY → UNLOADING_FINISHED → DELIVERED, via `PATCH /shipments/:id/status`
+- [x] `timeline` jsonb column on the shipment records each transition with a timestamp
+- [x] `DocumentUpload.tsx` wired into the active-shipment flow for CMR/POD/Invoice uploads
+
+### Offers / Bidding — DONE, including negotiation (implemented 2026-09-14)
+- [x] `Offer` entity (shipment_id, carrier_id, offered_price, message, status, expires_at)
+- [x] Multiple carriers can submit offers on one shipment (`POST /offers`)
+- [x] Shipper reviews offers and accepts/rejects (`PATCH /offers/:id/accept|reject`), now with proper party-based authorization (previously anyone authenticated could accept/reject any offer — fixed)
+- [x] Carrier-facing "my offers" list, now with response actions instead of read-only
+- [x] **Counter-offers**: either party can propose a new price (`PATCH /offers/:id/counter`), turn-based (`countered_by` tracks whose turn it is to respond), unlimited back-and-forth rounds, accepting a countered offer locks in the negotiated price on the shipment
+- [x] **Expiration enforcement**: `expires_at` is checked on every accept/counter (lazy expiry flips the row to `EXPIRED` on access) plus a `@Cron` job every 10 minutes that bulk-expires stale `PENDING`/`COUNTERED` offers
+- [x] **Withdraw**: carriers can pull their own open offer (`PATCH /offers/:id/withdraw`, uses the previously-unused `WITHDRAWN` status)
+- [x] Race-condition guard: accepting an offer for a shipment already assigned to a different carrier is rejected
+- [x] Carrier rating (from the Reviews feature) surfaced on every offer card so shippers can factor trust into acceptance
+
+### Reviews & Ratings — DONE (implemented 2026-09-14, was entirely missing)
+- [x] `Review` entity (shipment_id unique, reviewer_id, carrier_id, rating 1–5, comment)
+- [x] Shipper can rate a carrier once a shipment reaches `DELIVERED` (`POST /reviews`), one review per shipment enforced
+- [x] `GET /reviews/carrier/:id/summary` (average + count) shown on the carrier's own dashboard and on every offer a shipper reviews
+- [x] Carrier notified in-app when a review is received
+
+### Real-Time Tracking — DONE (doc previously said none)
+- [x] Socket.io gateway (`notifications.gateway.ts`) with JWT-authenticated connections
+- [x] Carrier browser emits live GPS via `useLocationTracking` (`navigator.geolocation.watchPosition`) → `location-update` socket event, gated behind `TrackingPermissionModal`
+- [x] Gateway caches last-known location per shipment and rebroadcasts as `carrier-location` to all subscribers, including one who joins late
+- [x] `LiveTrackingMap.tsx` (Leaflet): animated truck markers, per-status colors/icons, route polylines, searchable shipment filter, connection-state awareness
+- [x] In-app notifications: `Notification` entity + gateway push + (per dashboard) notification bell
+
+### Mobile Apps (new — not in original spec scope, found during audit)
+- [x] `mobile/shipper` (Expo/React Native): login, dashboard, create/active/history shipments, documents, settings — full screen set mirroring the web shipper dashboard
+- [ ] `mobile/carrier` (Expo): scaffolded only (App.tsx + config), no screens built yet — this is the natural home for background GPS tracking, which the current web `watchPosition` approach can't do reliably
 
 ### Database Schema
-- [x] Users table
-- [x] Carriers table (user_id, name, passport)
-- [x] Vehicles table (type, plate, capacity, volume)
-- [x] Shipments table (locations, cargo, status, price)
-- [x] Documents table (type, file_url, status)
+- [x] Users, Carriers (rich), Vehicles (rich), Shipments (rich), Documents, Offers, Notifications
 
 ---
 
-## ❌ MISSING CRITICAL FEATURES
+## ❌ CONFIRMED STILL MISSING
 
-### 1. Carrier Registration Flow ⚠️ HIGH PRIORITY
-**What's Missing:**
-- Full carrier documentation upload during registration
-- Required fields NOT captured:
-  - Bank details (Bank Name, Code, Account, Currency)
-  - Address structure
-  - Driver License number
-  - ID Card
-  - Insurance Policy documents
-  - POA (Power of Attorney)
-  - CMR Blank
-  - Other logistics documents
-- Document verification workflow
-- Carrier verification status management
+### 1. Payment System — BUILT 2026-09-15, needs live API keys to actually run
+**Scope decision (made with the user):** simple collection flow, not a Stripe Connect marketplace — the shipper pays into the platform's own Stripe account via a hosted Checkout Session; carrier payout is tracked in the app but the actual transfer to the carrier happens outside Stripe for now. Charged **after delivery**, against the existing `payment_terms`-derived due date (matches the "Payment Pending / due in N days" UI that already existed on shipment cards).
 
-**Current State:** Carriers can register with just email/phone/password (same as shippers)
+**Built:**
+- [x] `Payment` entity (one per shipment, `PENDING → PROCESSING → PAID/FAILED`, amount, currency, `stripe_checkout_session_id`, `due_date`, `paid_at`)
+- [x] `POST /payments/checkout/:shipmentId` — shipper-only, validates shipment is `DELIVERED` and unpaid, creates/reuses the `Payment` row, returns a Stripe Checkout URL
+- [x] `POST /payments/webhook` — verifies the Stripe signature against the **raw** request body (required `main.ts` bootstrap change: body parsing is now routed per-path so `/payments/webhook` gets raw bytes while every other route keeps normal JSON parsing — verified both still work), marks the payment `PAID`, notifies both parties
+- [x] `GET /payments/shipment/:id`, `GET /payments/my-payments`, `GET /payments/carrier/earnings-summary`
+- [x] Frontend: `PaymentPanel` (Pay Now button + live status) on the shipper's shipment detail page, wired to the Stripe success/cancel redirect; `CarrierEarningsBadge` on the carrier dashboard
+- [x] Fixed a related inconsistency this surfaced: the existing `/dashboard` "Earnings" stat summed *all delivered shipment prices*, not money actually received — now sums real `PAID` payments, consistent with the new earnings summary
+- [x] `ShipmentList.tsx`'s "Payment Pending" badge now reflects real payment status instead of always showing pending
+- [x] Verified end-to-end via curl against the running backend: authorization ordering fixed after first test caught it short-circuiting on "Stripe not configured" before checking ownership/status (now validates business rules first, Stripe second); due-date calculation confirmed to exactly match the frontend's existing logic
 
----
-
-### 2. Advanced Vehicle Management
-**What's Missing:**
-- Volume (m³) - **partially done**
-- Dimensions (L x W x H) - **partially done**
-- Refrigerated flag
-- ADR class/special permissions
-- Load capabilities (curtain, liftgate, hard box, platform, container locks)
-- Vehicle documents (insurance, registration, inspection)
-- Multiple vehicles per carrier
-
-**Current State:** Only basic type, plate, capacity_kg
+**Not done / needs you:**
+- No `STRIPE_SECRET_KEY` or `STRIPE_WEBHOOK_SECRET` configured yet — every endpoint is wired but returns a clear "not configured" error until real test keys are added to `backend/.env`
+- Carrier payout is manual/tracked-only, not automated (by design, per the simple-flow decision above) — revisit if/when a Connect marketplace is wanted
+- No refund flow
 
 ---
 
-### 3. Shipment Creation - Missing Fields
-**What's Missing:**
-- Volume/Dimensions input
-- Vehicle type requirement selection
-- Pickup/Delivery TIMES (datetime pickers)
-- Photos/Documents upload
-- Real-time location (lat/lng) - using placeholder 0,0
-- Special requirements - **done but not fully integrated**
+### 2. Languages (GE, RU) — infrastructure fixed 2026-09-14, real coverage still shallow
+**What was actually wrong (worse than "files missing"):** `routing.ts` already listed `ge` and `ru` as supported locales — with no message files behind them. Visiting `/ge/*` or `/ru/*` threw an uncaught module-not-found error server-side (a 500, not a graceful fallback). `de.json` was also missing the `Shipper` and `Carrier` namespaces entirely, so German users hitting those pages were already relying on next-intl's fallback behavior.
 
-**Current State:** Basic form without geocoding, times are hardcoded
+**Fixed:**
+- [x] Renamed the Georgian locale from `ge` to the correct ISO 639-1 tag `ka` (`ge` is the *country* code, not the language code — nothing else in the codebase referenced the string, so this was a safe, one-line rename)
+- [x] `de.json` brought to full key parity with `en.json` (added `Shipper`/`Carrier`)
+- [x] `ka.json` and `ru.json` created with full translations for all 5 existing namespaces (`HomePage`, `Auth`, `Shipper`, `Carrier`, `Dashboard`) — verified identical key sets across all four files programmatically
+- [x] Built `LanguageSwitcher.tsx` (none existed before — the locales were unreachable through the UI) and wired it into the homepage, `AuthLayout` (login/register), and the dashboard header
+- [x] Verified live: all four locale homepages and `/auth/login` return 200 and render the correct translated string per language (checked via curl against the running dev server, not just code review)
 
---- 
-
-### 4. Carrier Status Updates
-**What's Missing:**
-- Status update interface ("Loaded", "On the Way", "Delivered")
-- Document upload for active shipments:
-  - CMR (signed)
-  - POD (Proof of Delivery)
-  - Invoice
-- Status timeline/history
-
-**Current State:** Only admin can update via PATCH endpoint
+**Still genuinely incomplete — do not read the above as "the app is localized":** only 25 of 56 frontend components call `useTranslations` at all, across just those 5 namespaces. Everything built in later sessions — the shipment wizard, offers/counter-offers, live tracking, reviews, admin — is hardcoded English with no translation keys. Switching language today translates login/register/homepage/basic nav labels and nothing else. Fully localizing the product would mean adding translation keys through ~30 more components; that's a substantially larger job than "add two JSON files," and is not started.
 
 ---
 
-### 5. Real-Time Tracking
-**What's Missing:**
-- WebSocket/Socket.io integration
-- Live location updates
-- Real-time notifications
-- Tracking page for shippers
-- GPS integration (future: mobile app)
+### 3. Admin Dashboard — BUILT 2026-09-15
+Scoped from a generic marketplace-admin recommendation list down to what this app's actual data supports — route optimization, chargeback handling, support tickets, and predictive forecasting were all dropped since there's no underlying system for any of them yet.
 
-**Current State:** None - static status only
+**Built:**
+- [x] `/admin` — platform overview: shipper/carrier/shipment counts, shipments-by-status breakdown, delivery success rate, avg delivery time, revenue paid vs. pending (from real `Payment` records), pending-verification count
+- [x] `/admin/users` — directory of every shipper and carrier (search + role filter), showing shipment count, real earnings and rating for carriers, verification status; suspend/reactivate action
+- [x] `/admin/shipments` — platform-wide shipment list (search + status filter) with a manual status override for support/edge cases
+- [x] `/admin/verifications` — the existing carrier-verification queue, restyled to match, now sitting behind a proper `AdminLayout` with a role-gated redirect (previously reachable, if uselessly, by anyone with the link)
+- [x] `POST /admin/broadcast` — send an in-app + email notification to all shippers, all carriers, or everyone, reusing the existing notification/mail pipeline
+- [x] All `/admin/*` endpoints behind `RolesGuard` + `@Roles(ADMIN)`, verified via curl that shipper/carrier tokens get 403 and only the admin account gets through
 
----
-
-### 6. Payment System
-**What's Missing:**
-- Payment table/schema
-- Payment processing integration
-- Shipper payment for shipments
-- Carrier payout system
-- Earnings dashboard for carriers
-- Payment history
-
-**Current State:** Price field exists but no payment flow
+**Two real security gaps found and fixed while building this (not admin-dashboard scope per se, but surfaced by it):**
+- `is_active` existed on `User` but was checked *nowhere* — a suspended account could still log in, and an already-issued token kept working forever. Fixed in both `auth.service.ts` (blocks login) and `jwt.strategy.ts` (rejects the token on the very next request, verified live — suspending mid-session immediately 401s their existing token).
+- `PATCH /shipments/:id/status` had no ownership check — any authenticated user (not just the assigned carrier) could change any shipment's status. Restricted to the assigned carrier or an admin override; verified a second carrier gets 403.
 
 ---
 
-### 7. Matching & Offers System
-**What's Missing:**
-- Offers table (shipment_id, carrier_id, price, status)
-- Multiple carriers can bid on a shipment
-- Shipper can review and choose the best offer
-- Counter-offer functionality
-- Offer expiration
+### 4. Email Notifications — BUILT 2026-09-15, needs a live API key
+**Built:** `MailService` (Resend) wired directly into `NotificationsService.create()` — every existing in-app/WebSocket notification (offer received/accepted/rejected/countered/withdrawn, review received, payment confirmed/received, shipment status change) now also fires a best-effort email to the recipient's address, in a small branded HTML template with a link back to the dashboard. Fire-and-forget: an email failure is logged and never breaks the underlying action (accepting an offer, leaving a review, etc. all still succeed even if the mail API is down).
 
-**Current State:** Carriers can only "accept" jobs directly (no bidding)
+**Not done / needs you:** no `RESEND_API_KEY` configured yet — without it, emails are logged instead of sent (confirmed via a clean warning at startup, not a crash). No SMS (was always marked optional).
 
 ---
 
-### 8. Geocoding & Maps
-**What's Missing:**
-- OpenStreetMap Nominatim integration for address autocomplete
-- Map view for pickup/delivery locations  
-- Route visualization (Leaflet/MapLibre)
-- Distance calculation (currently hardcoded as 0)
-
-**Current State:** Text input only, no map integration
+### 5. Mobile Carrier App — Not Started
+- `mobile/carrier` Expo project exists but is empty (no screens, no API client, no GPS broadcasting). This is required for reliable background location tracking of drivers, which browser-based `watchPosition` cannot provide once the phone screen locks.
 
 ---
 
-### 9. Notifications System
-**What's Missing:**
-- Notifications table
-- In-app notifications
-- Email notifications (new job, shipment status change)
-- SMS notifications (optional)
-- Notification center/bell icon
-
-**Current State:** None
+## Items from the original doc now fully resolved (no action needed)
+Carrier registration & documents · Vehicle management (volume/dims/refrigerated/ADR/features/docs/multi-vehicle) · Shipment creation fields (dims, times, geocoding) · Carrier status updates & shipment doc upload · Real-time tracking (WebSocket, GPS, live map) · Geocoding & maps (Nominatim + Leaflet) · Offers/bidding, counter-offers & expiration · Reviews & ratings · Notifications (in-app/WebSocket) · Admin verification interface.
 
 ---
 
-### 10. Reviews & Ratings
-**What's Missing:**
-- Reviews table (shipment_id, reviewer_id, rating, comment)
-- Shipper can review carrier after delivery
-- Carrier rating display
-- Performance history
+## 📊 PRIORITY RECOMMENDATIONS (revised, reflects real remaining work only)
 
-**Current State:** None
+### Phase 1: Trust & Close-the-Loop — ✅ DONE (2026-09-14)
+1. ~~Reviews & Ratings~~ — done.
+2. ~~Offers: counter-offer + expiration~~ — done.
+3. ~~GE/RU translations~~ — infrastructure and existing-namespace coverage done; turned out to include fixing a live crash bug and a missing language switcher, not just adding two JSON files. Real product-wide localization (30+ hardcoded-English components) remains, see item 2 above under Confirmed Still Missing.
 
----
+### Phase 2: Admin & Operations — next up
+4. **Admin dashboard** — platform stats, user list with suspend/reactivate, extend the existing `/admin/verifications` pattern.
+5. **Email notifications** — mailer integration (e.g. nodemailer + a transactional provider) for offer received / status change / document rejected events, alongside the existing in-app/WebSocket ones.
 
-### 11. Missing Languages
-**Requirements:** EN, DE, GE, RU
-**Current State:** Only EN and DE have message files
-**Missing:** Georgian (GE) and Russian (RU) translation files
+### Phase 3: Money (needs a provider decision before starting)
+6. **Payment system** — schema, checkout flow for shippers, payout flow for carriers, earnings dashboard. Requires choosing a processor (Stripe is the natural default) and deciding sandbox vs. live scope before any code is written.
 
----
+### Phase 4: Mobile Carrier App
+7. **`mobile/carrier`** — build out the Expo app so drivers can log in, see assigned jobs, update status, and broadcast background GPS location (the web `watchPosition` approach stops once the phone screen locks, so this is the real fix for reliable live tracking in the field).
 
-### 12. Admin Features
-**What's Missing:**
-- Admin dashboard
-- User management (approve/suspend carriers)
-- Document verification interface
-- Platform analytics
-- Dispute resolution
-
-**Current State:** ADMIN role exists but no UI
+### Not started, out of current scope unless requested
+AI services (price estimation, carrier matching, route optimization) and analytics/forecasting — the original doc's Phase 3. These still make sense only after the data above (reviews/performance history, real payment/earnings history) exists to train or filter on.
 
 ---
-
-## 📊 PRIORITY RECOMMENDATIONS
-
-### Phase 1: Core Completeness (Before AI)
-1. **Carrier Registration Enhancement**
-   - Add all required document fields
-   - Document upload functionality
-   - Verification workflow
-
-2. **Shipment Enhancements**
-   - Add pickup/delivery time pickers
-   - Geocoding integration (Nominatim API)
-   - Calculate real distance
-   - Volume/dimensions fields
-
-3. **Carrier Workflow**
-   - Status update UI
-   - Document upload for active jobs
-   - My Jobs list (accepted/in-progress)
-
-4. **Offers System**
-   - Create offers table
-   - Allow carriers to submit bids
-   - Shipper can review & choose offer
-
-5. **Basic Notifications**
-   - In-app notification center
-   - Email notifications for critical events
-
-### Phase 2: Enhanced Experience
-6. **Map Integration**
-   - Leaflet/MapLibre for visualization
-   - Route display
-   - Real distance calculation (OSRM)
-
-7. **Payment Integration**
-   - Payment schema
-   - Stripe/Razorpay integration
-   - Payout system
-
-8. **Real-Time Features**
-   - Socket.io setup
-   - Live tracking
-   - Real-time notifications
-
-### Phase 3: AI & Optimization (After Core)
-9. **AI Services** (originally planned now)
-   - Price estimation
-   - Carrier matching
-   - Route optimization
-
-10. **Analytics & Insights**
-    - Demand forecasting
-    - Performance metrics
-    - Regional analysis
-
----
-
-## ⚠️ RECOMMENDATION
-
-**Before implementing AI services, we should complete:**
-1. Carrier registration with all documents ✅ Critical
-2. Offers/bidding system ✅ Critical
-3. Geocoding & distance calculation ✅ High priority
-4. Carrier status updates & document upload ✅ High priority
-5. Basic notifications ✅ Medium priority
-
-**Reason:** AI services depend on complete data (accurate distances, carrier documents, historical performance). Implementing AI now would require mocking too much data.
-
-**Alternative:** We can implement a **simple** price estimation (basic formula) and basic filtering, but the full AI matching engine requires: 
-- Real distances (need geocoding)
-- Carrier documents/verification (trust factor)
-- Historical performance data (doesn't exist yet)
-- Backhaul/empty-run data (requires trip history)

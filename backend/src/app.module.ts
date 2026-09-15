@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -18,10 +19,17 @@ import { Shipment } from './shipments/shipment.entity';
 import { Offer } from './offers/offer.entity';
 import { Notification } from './notifications/notification.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { Review } from './reviews/review.entity';
+import { ReviewsModule } from './reviews/reviews.module';
+import { MailModule } from './mail/mail.module';
+import { Payment } from './payments/payment.entity';
+import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       ...(process.env.DATABASE_URL
@@ -33,7 +41,7 @@ import { NotificationsModule } from './notifications/notifications.module';
           password: process.env.POSTGRES_PASSWORD,
           database: process.env.POSTGRES_DB,
         }),
-      entities: [User, Carrier, Vehicle, Shipment, Document, Offer, Notification],
+      entities: [User, Carrier, Vehicle, Shipment, Document, Offer, Notification, Review, Payment],
       synchronize: true, // Set to false in production
       ssl: (process.env.POSTGRES_HOST?.includes('supabase') || process.env.DATABASE_URL?.includes('supabase'))
         ? { rejectUnauthorized: false }
@@ -47,6 +55,10 @@ import { NotificationsModule } from './notifications/notifications.module';
     AuthModule,
     OffersModule,
     NotificationsModule,
+    ReviewsModule,
+    MailModule,
+    PaymentsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
