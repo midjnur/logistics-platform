@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Your computer's LAN IP — update this if your network changes (check with
 // `ipconfig getifaddr en0` on Mac). Your phone must be on the same Wi-Fi/hotspot.
-const API_URL = 'http://172.20.10.8:4000';
+export const API_URL = 'http://172.20.10.8:4000';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -12,7 +12,6 @@ const api = axios.create({
     },
 });
 
-// Add a request interceptor to attach the Token
 api.interceptors.request.use(async (config) => {
     const token = await SecureStore.getItemAsync('access_token');
     if (token) {
@@ -21,7 +20,6 @@ api.interceptors.request.use(async (config) => {
     return config;
 });
 
-// Add response interceptor for error handling
 api.interceptors.response.use(
     (response) => response,
     (error) => {
