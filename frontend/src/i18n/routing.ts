@@ -3,7 +3,9 @@ import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
     // A list of all locales that are supported
-    locales: ['en', 'de', 'ge', 'ru'],
+    // Note: Georgian uses the correct ISO 639-1 tag 'ka' (not 'ge', which is
+    // the country code for Georgia, not the language code).
+    locales: ['en', 'de', 'ka', 'ru'],
 
     // Used when no locale matches
     defaultLocale: 'en'

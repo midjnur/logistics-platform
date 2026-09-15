@@ -6,6 +6,7 @@ import { Link, useRouter, usePathname } from '@/i18n/routing';
 import { fetchApi } from '@/lib/api';
 import { SocketProvider } from '@/context/SocketContext';
 import NotificationBell from '@/components/layout/NotificationBell';
+import LanguageSwitcher from '@/components/layout/LanguageSwitcher';
 import ToastContainer from '@/components/ui/ToastContainer';
 
 export default function DashboardLayout({
@@ -46,7 +47,7 @@ export default function DashboardLayout({
         { label: 'Create Shipment', href: '/dashboard/shipper/create-shipment', icon: 'M12 4v16m8-8H4', roles: ['SHIPPER'] },
         { label: 'My Shipments', href: '/dashboard/shipper/my-shipments', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', roles: ['SHIPPER'] },
 
-        { label: 'Upcoming Shipments', href: '/dashboard/shipper/upcoming', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['SHIPPER'] },
+        { label: 'Upcoming Shipments', href: '/dashboard/shipper/upcoming', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', roles: ['SHIPPER'] },
         { label: 'Active Shipments', href: '/dashboard/shipper/active-orders', icon: 'M13 10V3L4 14h7v7l9-11h-7z', roles: ['SHIPPER'] },
         { label: 'History', href: '/dashboard/shipper/history', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['SHIPPER'] },
 
@@ -57,7 +58,7 @@ export default function DashboardLayout({
         // Carrier Links
         { label: 'Find Shipments', href: '/dashboard/carrier', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', roles: ['CARRIER'] },
         { label: 'Offers Sent', href: '/dashboard/carrier/offers', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z', roles: ['CARRIER'] },
-        { label: 'Upcoming Shipments', href: '/dashboard/carrier/upcoming', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['CARRIER'] },
+        { label: 'Upcoming Shipments', href: '/dashboard/carrier/upcoming', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', roles: ['CARRIER'] },
         { label: 'Active Shipments', href: '/dashboard/carrier/active', icon: 'M13 10V3L4 14h7v7l9-11h-7z', roles: ['CARRIER'] },
         { label: 'My Vehicles', href: '/dashboard/carrier/my-vehicles', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', roles: ['CARRIER'] },
         { label: 'History', href: '/dashboard/carrier/history', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['CARRIER'] },
@@ -187,6 +188,7 @@ export default function DashboardLayout({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <LanguageSwitcher variant="light" />
                         <NotificationBell />
                         {user && (
                             <div className="flex items-center gap-2 pr-2 border-r border-gray-100">
@@ -253,7 +255,8 @@ export default function DashboardLayout({
                     {/* The design seems to have sidebar but no top bar on desktop? */}
                     {/* Let's add a floating header or just insert into sidebar? Sidebar doesn't have space. */}
                     {/* Creating a simple top bar for desktop main area just for the bell and user info if needed. */}
-                    <div className="hidden md:flex justify-end mb-6">
+                    <div className="hidden md:flex justify-end items-center gap-3 mb-6">
+                        <LanguageSwitcher variant="light" />
                         <NotificationBell />
                     </div>
                     {children}

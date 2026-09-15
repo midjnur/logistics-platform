@@ -17,6 +17,30 @@
         "haveAccount": "Haben Sie bereits ein Konto? Anmelden",
         "noAccount": "Haben Sie kein Konto? Registrieren"
     },
+    "Shipper": {
+        "createShipment": "Sendung erstellen",
+        "pickupLocation": "Abholort",
+        "deliveryLocation": "Lieferort",
+        "cargoType": "Frachtart",
+        "weight": "Gewicht (kg)",
+        "volume": "Volumen (m³)",
+        "dimensions": "Abmessungen (L x B x H)",
+        "vehicleType": "Benötigter Fahrzeugtyp",
+        "specialRequirements": "Besondere Anforderungen",
+        "estimatedPrice": "Geschätzter Preis",
+        "postShipment": "Sendung veröffentlichen",
+        "myShipments": "Meine Sendungen"
+    },
+    "Carrier": {
+        "availableJobs": "Verfügbare Aufträge",
+        "myVehicles": "Meine Fahrzeuge",
+        "addVehicle": "Fahrzeug hinzufügen",
+        "plateNumber": "Kennzeichen",
+        "vehicleType": "Fahrzeugtyp",
+        "capacity": "Kapazität (kg)",
+        "acceptJob": "Auftrag annehmen",
+        "jobDetails": "Auftragsdetails"
+    },
     "Dashboard": {
         "title": "Dashboard",
         "overview": "Übersicht",

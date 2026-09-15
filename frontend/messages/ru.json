@@ -1,0 +1,54 @@
+{
+  "HomePage": {
+    "title": "Логистическая платформа на базе ИИ",
+    "subtitle": "Бесшовная связь между грузоотправителями и перевозчиками."
+  },
+  "Auth": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "logout": "Выход",
+    "email": "Эл. почта",
+    "password": "Пароль",
+    "phone": "Телефон",
+    "role": "Роль",
+    "shipper": "Грузоотправитель",
+    "carrier": "Перевозчик",
+    "submit": "Отправить",
+    "haveAccount": "Уже есть аккаунт? Войти",
+    "noAccount": "Нет аккаунта? Зарегистрироваться"
+  },
+  "Shipper": {
+    "createShipment": "Создать отправление",
+    "pickupLocation": "Место погрузки",
+    "deliveryLocation": "Место доставки",
+    "cargoType": "Тип груза",
+    "weight": "Вес (кг)",
+    "volume": "Объём (м³)",
+    "dimensions": "Размеры (Д x Ш x В)",
+    "vehicleType": "Требуемый тип транспорта",
+    "specialRequirements": "Особые требования",
+    "estimatedPrice": "Ориентировочная цена",
+    "postShipment": "Опубликовать отправление",
+    "myShipments": "Мои отправления"
+  },
+  "Carrier": {
+    "availableJobs": "Доступные заказы",
+    "myVehicles": "Мои транспортные средства",
+    "addVehicle": "Добавить транспортное средство",
+    "plateNumber": "Госномер",
+    "vehicleType": "Тип транспортного средства",
+    "capacity": "Грузоподъёмность (кг)",
+    "acceptJob": "Принять заказ",
+    "jobDetails": "Детали заказа"
+  },
+  "Dashboard": {
+    "title": "Панель управления",
+    "overview": "Обзор",
+    "myShipments": "Мои отправления",
+    "createShipment": "Создать отправление",
+    "findLoads": "Найти грузы",
+    "myVehicles": "Мои транспортные средства",
+    "myDocuments": "Мои документы",
+    "logout": "Выход"
+  }
+}

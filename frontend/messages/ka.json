@@ -1,0 +1,54 @@
+{
+  "HomePage": {
+    "title": "ხელოვნური ინტელექტის ლოგისტიკური პლატფორმა",
+    "subtitle": "გამგზავნებსა და გადამზიდველებს შორის შეუფერხებელი კავშირი."
+  },
+  "Auth": {
+    "login": "შესვლა",
+    "register": "რეგისტრაცია",
+    "logout": "გასვლა",
+    "email": "ელფოსტა",
+    "password": "პაროლი",
+    "phone": "ტელეფონი",
+    "role": "როლი",
+    "shipper": "გამგზავნი",
+    "carrier": "გადამზიდველი",
+    "submit": "გაგზავნა",
+    "haveAccount": "უკვე გაქვთ ანგარიში? შესვლა",
+    "noAccount": "არ გაქვთ ანგარიში? რეგისტრაცია"
+  },
+  "Shipper": {
+    "createShipment": "გზავნილის შექმნა",
+    "pickupLocation": "აღების ადგილი",
+    "deliveryLocation": "მიწოდების ადგილი",
+    "cargoType": "ტვირთის ტიპი",
+    "weight": "წონა (კგ)",
+    "volume": "მოცულობა (მ³)",
+    "dimensions": "ზომები (სიგრძე x სიგანე x სიმაღლე)",
+    "vehicleType": "საჭირო ავტომობილის ტიპი",
+    "specialRequirements": "სპეციალური მოთხოვნები",
+    "estimatedPrice": "სავარაუდო ფასი",
+    "postShipment": "გზავნილის გამოქვეყნება",
+    "myShipments": "ჩემი გზავნილები"
+  },
+  "Carrier": {
+    "availableJobs": "ხელმისაწვდომი შეკვეთები",
+    "myVehicles": "ჩემი ავტომობილები",
+    "addVehicle": "ავტომობილის დამატება",
+    "plateNumber": "სახელმწიფო ნომერი",
+    "vehicleType": "ავტომობილის ტიპი",
+    "capacity": "ტევადობა (კგ)",
+    "acceptJob": "შეკვეთის მიღება",
+    "jobDetails": "შეკვეთის დეტალები"
+  },
+  "Dashboard": {
+    "title": "მართვის პანელი",
+    "overview": "მიმოხილვა",
+    "myShipments": "ჩემი გზავნილები",
+    "createShipment": "გზავნილის შექმნა",
+    "findLoads": "ტვირთების ძებნა",
+    "myVehicles": "ჩემი ავტომობილები",
+    "myDocuments": "ჩემი დოკუმენტები",
+    "logout": "გასვლა"
+  }
+}
